@@ -119,13 +119,3 @@ function render(template, view)
 
   return patt:match(template)
 end
-
---[[ test code ]]
-print(render 'aasdasdasd')
-print(render('aasdas{{a}}dasd{{{asdasd}}}{{&awdas}}', { a = '<a>', asdasd = '<dsadsa>' }))
-print(render('aasdas{{#a}}dasd{{{asdasd}}}{{/a}}{{&awdas}}', { a = { asdasd = '<dsadsa>' }, awdas = '<>' }))
-print(render('{{#a}}{{#asd}}{{/a}}{{/asd}}', { a = '<a>', asdasd = '<dsadsa>', awdas = '<>' }))
-print(render('{{#a}}{{#asd}}{{var}}{{/asd}}{{/a}}', { a = { asd = { { var = 'a'}, { var = 'b'}, { var = 'c'} } }, awdas = '<>' }))
-print(render('{{#a}}{{^asd}}Aww...{{/asd}}{{/a}}', { a = { asd = { var = 'a' } } }))
-print(render('{{#a}}{{^asd}}Aww...{{/asd}}{{/a}}', { a = { asd = {} } }))
-print(render('<h1>Today{{! ignore me }}.</h1>', {}))
