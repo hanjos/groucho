@@ -25,6 +25,9 @@ To do
 
 * Partial templates
 * Set delimiters
+* Document
+* Actual testing
+* Make sure the rockspec makes sense
 
 Why?
 ----
