@@ -61,11 +61,12 @@ grammar = [[
   OpenInvertedSection <- '{{^' { Name } '}}' %s*
   CloseSection        <- %s* '{{/' Name '}}'
   CloseSectionWithTag <- %s* '{{/' =tag '}}'
-  Partial         <- ('{{>' %s* { (!(%s* '}}') .)* } %s* '}}') -> partial
-  Comment         <- ('{{!' { (!'}}' .)* } '}}') -> comment
-  UnescapedVar    <- ('{{{' { Name } '}}}' / '{{&' { Name } '}}') -> unescapedVar
-  Var             <- ('{{' { Name } '}}') -> var
-  Name      <- [a-zA-Z_][0-9a-zA-Z_]*
+  Partial         <- ('{{>' %s* { Name } %s* '}}') -> partial
+  Comment         <- ('{{!' { Name } '}}') -> comment
+  UnescapedVar    <- ('{{{' %s* { (!(%s* '}}}') .)* } %s* '}}}'
+                  / '{{&' %s* { Name } %s* '}}') -> unescapedVar
+  Var             <- ('{{' %s* { Name } %s* '}}') -> var
+  Name  <- (!(%s* '}}') .)*
 ]]
 
 --- Parses the given template string and returns a rendered version with all

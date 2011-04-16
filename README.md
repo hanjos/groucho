@@ -17,6 +17,12 @@ I haven't decided which documentation generator to use yet. LuaDoc doesn't
 render the docs the way I like, and I don't know what else is out there, so
 I made up my own markup for now.
 
+Testing
+-------
+
+[telescope][6] looked nice, so I wrote some basic tests, using mainly the
+examples in the mustache manual. 
+
 Usage
 -----
 
@@ -44,16 +50,16 @@ constructed. They are also comment-documented.
 To do
 -----
 
-* Ascertain that partial templates are working
 * Set delimiters
-* Documentation
-* Actual testing
+* Actual documentation
+* Stronger testing
 * Make sure the rockspec makes sense
 
 Why?
 ----
 
-To be honest, I just wanted an excuse to fool around with **re** :)
+To be honest, I just wanted an excuse to fool around with **re** :) Learning
+about some of the tools available for Lua is just the icing on the cake!
 
 
 [1]: http://mustache.github.com/
@@ -61,3 +67,4 @@ To be honest, I just wanted an excuse to fool around with **re** :)
 [3]: http://www.inf.puc-rio.br/~roberto/lpeg/re.html
 [4]: https://github.com/defunkt/mustache
 [5]: http://mustache.github.com/mustache.5.html
+[6]: https://github.com/norman/telescope
