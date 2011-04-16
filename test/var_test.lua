@@ -63,4 +63,95 @@ context('Variables', function ()
 
     assert_equal(expected, groucho.render(base, context))
   end)
+
+  it('handles variables with spaces in the name', function ()
+    local base = [[
+* {{name of manager}}
+* {{age of manager}}
+* {{{company name in bold}}}]]
+
+    local expected = [[
+* Chris
+* 29
+* <b>GitHub</b>]]
+
+    local context = {
+      ['name of manager'] = "Chris",
+      ['age of manager'] = "29",
+      ['company name in bold'] = "<b>GitHub</b>",
+    }
+
+    assert_equal(expected, groucho.render(base, context))
+  end)
+
+  it('handles variables with non-letter characters in the name', function ()
+    local base = [[
+* {{name?}}
+* {{age!}}
+* {{123company_in_bold}}
+* {{& =1+2}}]]
+
+    local expected = [[
+* Chris
+* 29
+* &lt;b&gt;GitHub&lt;/b&gt;
+* <b>GitHub</b>]]
+
+    local context = {
+      ['name?'] = "Chris",
+      ['age!'] = "29",
+      ['123company_in_bold'] = "<b>GitHub</b>",
+      ['=1+2'] = "<b>GitHub</b>",
+    }
+
+    assert_equal(expected, groucho.render(base, context))
+  end)
+
+  it("doesn't look for non-string keys in the context", function ()
+    local base = [[
+* {{1}}
+* {{{2}}}
+* {{3}}]]
+
+    local expected = [[
+* Chris
+* 29
+* ]]
+
+    local context = {
+      ['1'] = "Chris",
+      [1] = "Angela",
+      ['2'] = "29",
+      [2] = "40, but gosh doesn't she look like she's 29?",
+      ['=1+2'] = "whatever",
+      [3] = "Help! I'm invisible!",
+    }
+
+    assert_equal(expected, groucho.render(base, context))
+  end)
+
+  it('converts context values to strings before rendering', function ()
+    local base = [[
+* {{name}}
+* {{age}}
+* {{married?}}
+* {{  has kids?   }}
+* {{has a job?}}]]
+
+    local expected = [[
+* Chris
+* 29
+* true
+* false
+* ]]
+
+    local context = {
+      name = "Chris",
+      age = 29,
+      ['married?'] = true,
+      ['has kids?'] = false,
+    }
+
+    assert_equal(expected, groucho.render(base, context))
+  end)
 end)
