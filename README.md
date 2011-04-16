@@ -20,12 +20,20 @@ groucho exports only a single function **render**, which takes a template
         'aasdas{{a}}dasd{{{asdasd}}}{{&awdas}}', -- the template
         { a = '<a>', asdasd = '<dsadsa>' }))     -- the view
 
+Optionally, it may take a configuration table as an extra parameter:
+
+    local result = groucho.render(
+        'aasdas{{a}}dasd{{{asdasd}}}{{&awdas}}', -- the template
+        { a = '<a>', asdasd = '<dsadsa>' },      -- the view
+        { template_path = '../',
+          template_extension = 'mustache' }))    -- the configuration table
+
 To do
 -----
 
-* Partial templates
+* Ascertain that partial templates are working
 * Set delimiters
-* Document
+* Documentation
 * Actual testing
 * Make sure the rockspec makes sense
 
