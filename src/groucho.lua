@@ -44,8 +44,9 @@ grammar = [[
   Start     <- {~ Template ~} !.
   Template  <- (String (Hole String)*)
   String    <- (!Hole !OpenSection !OpenInvertedSection !CloseSection .)*
-  Hole      <- Section / InvertedSection / Partial / UnescapedVar / Comment / Var
-  Section         <- (
+  Hole      <- Section / InvertedSection / Partial
+            / UnescapedVar / Comment / Var
+  Section   <- (
     {:tag: OpenSection :}
     {:textstart: {} :}
     Template
@@ -69,16 +70,15 @@ grammar = [[
   Name  <- (!(%s* '}}') .)*
 ]]
 
---- Parses the given template string and returns a rendered version with all
--- Mustache tags replaced with the values available in the given context.
+--- Returns a rendered string with all tags populated with the given context.
 --
 -- Parameters:
--- * template <string>: a string template.
+-- * template <string>: a template.
 -- * context  <table>: a table holding the values for replacement.
--- * config   <string, optional>: a table holding some configurations.
+-- * config   <table, optional>: a table holding some configurations.
 --     There are two:
--- ** template_path <string>: the relative path where template files will be
---         searched. Defaults to '.'.
+-- ** template_path <string | nil>: the relative path where template files will
+--         be searched. Defaults to '.'.
 -- ** template_extension <string | nil>: the extension of the template files.
 --         Defaults to 'mustache'. If set to nil or '', the files have no
 --         extension.
@@ -119,7 +119,8 @@ function render(template, context, config)
         end
 
         assert(type(ctx) == 'table',
-          'ctx expected to be a table, not a '..type(ctx)..': '..tostring(ctx))
+          'expected a table from '..tostring(section.tag).. ', not a '
+          ..type(ctx)..': '..tostring(ctx))
 
         if islist(ctx) then
           if #ctx == 0 then -- empty list, nothing to do
@@ -140,7 +141,7 @@ function render(template, context, config)
       end,
       invertedSection = function (s, i, section)
         local ctx = context[section.tag]
-        if ctx and (not islist(ctx) or #ctx > 0) then -- defined, nothing to do
+        if ctx and (not islist(ctx) or #ctx > 0) then -- it's defined, nothing to do
           return i, ''
         end
 
