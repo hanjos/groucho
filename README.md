@@ -4,11 +4,18 @@ Groucho
 Groucho is a Lua implementation of [mustache][1], a logic-less templating
 language, using [LPeg][2] (well, [re][3] actually) for the dirty work.
 
+For more information about mustache, check out the [mustache project page][4]
+or the [mustache manual][5].
+
 Documentation
 -------------
 
-For more information about mustache, check out the [mustache project page][4]
-or the [mustache manual][5].
+There are comments in the code, if that's what you're asking :)
+
+No, they're not LuaDoc-compatible (don't let the --- comments fool you :P).
+I haven't decided which documentation generator to use yet. LuaDoc doesn't
+render the docs the way I like, and I don't know what else is out there, so
+I made up my own markup for now.
 
 Usage
 -----
