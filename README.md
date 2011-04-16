@@ -20,7 +20,7 @@ I made up my own markup for now.
 Usage
 -----
 
-groucho exports only a single function **render**, which takes a template
+groucho exports a function **render**, which takes a template
 (a string) and a view (a table), as in the example below:
 
     local result = groucho.render(
@@ -35,6 +35,12 @@ Optionally, it may take a configuration table as an extra parameter:
         { template_path = '../',
           template_extension = 'mustache' }))    -- the configuration table
 
+The comment on the render function should tell you the nitty-gritty.
+
+groucho also exports the **re** grammar (called **grammar**, appropriately
+enough), which has some hooks which need to be filled for the pattern to be
+constructed. They are also comment-documented.
+
 To do
 -----
 
@@ -47,7 +53,7 @@ To do
 Why?
 ----
 
-To be honest, I just wanted an excuse to fool around with re :)
+To be honest, I just wanted an excuse to fool around with **re** :)
 
 
 [1]: http://mustache.github.com/
