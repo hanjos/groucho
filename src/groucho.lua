@@ -1,10 +1,10 @@
 --[[ imports and aliases ]]
 local re = require 're'
 
-local table_remove, table_concat =
-  table.remove, table.concat
-local assert, ipairs, pairs, setmetatable, tostring, type =
-  assert, ipairs, pairs, setmetatable, tostring, type
+local table_remove, table_concat, io_open =
+  table.remove, table.concat, io.open
+local assert, ipairs, pairs, tostring, type =
+  assert, ipairs, pairs, tostring, type
 
 local print = print
 
@@ -57,7 +57,7 @@ local grammar = [[
   OpenInvertedSection <- '{{^' { Name } '}}' %s*
   CloseSection        <- %s* '{{/' Name '}}'
   CloseSectionWithTag <- %s* '{{/' =tag '}}'
-  Partial         <- ('{{>' { (!'}}' .)* } '}}') -> partial
+  Partial         <- ('{{>' %s* { (!(%s* '}}') .)* } %s* '}}') -> partial
   Comment         <- ('{{!' (!'}}' .)* '}}') -> comment
   UnescapedVar    <- ('{{{' { Name } '}}}' / '{{&' { Name } '}}') -> unescapedVar
   Var             <- ('{{' { Name } '}}') -> var
@@ -65,15 +65,29 @@ local grammar = [[
 ]]
 
 --[[ exports ]]
-function render(template, view)
+local config_defaults = { template_path = '.', template_extension = 'mustache' }
+
+function render(template, view, config)
+  config = config or config_defaults
+
   local patt = re.compile(grammar,
     { unescapedVar = function (var) return empty_on_nil(view[var]) end,
       var = function (var) return empty_on_nil(view[var], escapehtml) end,
       comment = function (comment) return '' end,
       partial = function (partial)
-        -- load the {{partial}}.mustache file,
-        -- include it and evaluate it here (at runtime?)
-        return '<Not implemented!>'
+        if not config.template_path then -- file not found
+          return ''
+        end
+
+        -- load the {{partial}}.mustache file
+        local path, ext = config.template_path, empty_on_nil(config.template_extension)
+        --print('>>', path, ext, view.template_path, view.template_extension)
+        local location = path..'/'..partial..(#ext > 0 and '.'..ext or '')
+        
+        local text = assert(io_open(location, 'r')):read '*a'
+        
+        -- include it and evaluate it here
+        return render(text, view, config)
       end,
       section = function (s, i, section)
         local ctx = view[section.tag]
@@ -84,7 +98,7 @@ function render(template, view)
         local text = s:sub(section.textstart, section.textfinish - 1)
 
         if type(ctx) == 'function' then -- call it to provide the result
-          return i, ctx(text, view)
+          return i, ctx(text, view, config)
         end
 
         assert(type(ctx) == 'table',
@@ -98,14 +112,14 @@ function render(template, view)
           -- render text for each subcontext and accumulate the results
           local results = {}
           for _, subctx in ipairs(ctx) do
-            results[#results + 1] = render(text, subctx)
+            results[#results + 1] = render(text, subctx, config)
           end
 
           return i, table_concat(results, '\n')
         end
 
         -- ctx is a hash table
-        return i, render(text, ctx)
+        return i, render(text, ctx, config)
       end,
       invertedSection = function (s, i, section)
         local ctx = view[section.tag]
