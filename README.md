@@ -12,16 +12,16 @@ Documentation
 
 There are comments in the code, if that's what you're asking :)
 
-No, they're not LuaDoc-compatible (don't let the --- comments fool you :P).
+No, they're not [LuaDoc][6]-compatible (don't let the --- comments fool you :P).
 I haven't decided which documentation generator to use yet. LuaDoc doesn't
 render the docs the way I like, and I don't know what else is out there, so
-I made up my own markup for now.
+I made my own markup for now.
 
 Testing
 -------
 
-[telescope][6] looked nice, so I wrote some basic tests, using mainly the
-examples in the mustache manual. 
+[telescope][7] looked nice, so I wrote some basic tests, using mainly the
+examples in the mustache manual. Should've read the [spec][8] instead...
 
 Usage
 -----
@@ -50,9 +50,9 @@ constructed. They are also comment-documented.
 To do
 -----
 
+* Read the damn specs before getting too code happy
 * Set delimiters
 * Actual documentation
-* Stronger testing
 * Make sure the rockspec makes sense
 
 Why?
@@ -67,4 +67,6 @@ about some of the tools available for Lua is just the icing on the cake!
 [3]: http://www.inf.puc-rio.br/~roberto/lpeg/re.html
 [4]: https://github.com/defunkt/mustache
 [5]: http://mustache.github.com/mustache.5.html
-[6]: https://github.com/norman/telescope
+[6]: https://github.com/keplerproject/luadoc
+[7]: https://github.com/norman/telescope
+[8]: https://github.com/mustache/spec
