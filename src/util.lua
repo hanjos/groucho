@@ -1,6 +1,7 @@
 --[[ imports and aliases ]]
 local ipairs, pairs, tostring, type = ipairs, pairs, tostring, type 
 
+local lpeg = require 'lpeg'
 local re = require 're'
 
 --- Some utility functions.
@@ -69,4 +70,21 @@ local NL = re.compile '%nl'
 --     otherwise.
 function atlinestart(s, i)
   return (i == 1 or NL:match(s:sub(i - 1, i - 1))) and i or false
+end
+
+--- Splits a string using a given LPeg pattern as separator.
+-- Extracted from http://www.inf.puc-rio.br/~roberto/lpeg/lpeg.html, section
+-- Splitting a string.
+--
+-- Parameters:
+-- * s <string>: the string to split.
+-- * sep <string | LPeg pattern>: the separator.
+--
+-- Returns:
+-- * <table> a list of all the elements split by sep in s.
+function split (s, sep)
+  sep = lpeg.P(sep)
+  local elem = lpeg.C((1 - sep)^0)
+  local p = lpeg.Ct(elem * (sep * elem)^0)   -- make a table capture
+  return lpeg.match(p, s)
 end

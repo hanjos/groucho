@@ -4,8 +4,8 @@ local util = require 'util'
 
 local table_remove, table_concat, io_open =
   table.remove, table.concat, io.open
-local empty_on_nil, islist, escapehtml, atlinestart =
-  util.empty_on_nil, util.islist, util.escapehtml, util.atlinestart
+local empty_on_nil, islist, escapehtml, atlinestart, split =
+  util.empty_on_nil, util.islist, util.escapehtml, util.atlinestart, util.split
 local assert, ipairs, setmetatable, tostring, type =
   assert, ipairs, setmetatable, tostring, type
 
@@ -77,6 +77,49 @@ grammar = [[
   Name  <- (!(%s* '}}') .)*
 ]]
 
+--- Resolves the given variable name in the given context.
+-- Dotted names are considered a form of shorthand for sections, so 'a.b.c' is
+-- interpreted as 'return the value of c in the context defined by b which is
+-- in the context defined by a'. Any mismatch during the walking process will
+-- return nil.
+--
+-- Parameters:
+-- * context <table>: the initial context for variable lookup.
+-- * var <string>: the variable name, or a dotted name holding the variable's
+--     location.
+--
+-- Returns:
+-- * <any> nil if var could not be resolved against context, the value found
+--     otherwise.
+function resolve(context, var)
+  local path = split(var, '.')
+
+  if #path == 0 then
+    return nil
+  end
+
+  if #path == 1 then
+    return context[var]
+  end
+
+  -- iterate until the next to last name, since all of these names must
+  -- resolve to hash tables
+  local currentctx = context
+  for i = 1, #path - 1 do
+    local newctx = currentctx[ path[i] ]
+
+    if newctx == nil
+    or type(newctx) ~= 'table'
+    or islist(newctx) then -- lookup fail, nothing found
+      return nil
+    end
+
+    currentctx = newctx
+  end
+
+  return currentctx[path[#path]]
+end
+
 --- Returns a rendered string with all tags populated with the given context.
 --
 -- Parameters:
@@ -97,8 +140,8 @@ function render(template, context, config)
 
   local patt = re.compile(grammar,
     { atlinestart = atlinestart,
-      unescapedVar = function (var) return empty_on_nil(context[var]) end,
-      var = function (var) return escapehtml(empty_on_nil(context[var])) end,
+      unescapedVar = function (var) return empty_on_nil(resolve(context, var)) end,
+      var = function (var) return escapehtml(empty_on_nil(resolve(context, var))) end,
       comment = function (comment) return '' end,
       partial = function (partial)
         if not config.template_path then -- file not found
@@ -115,7 +158,7 @@ function render(template, context, config)
         return render(text, context, config)
       end,
       section = function (s, i, section)
-        local ctx = context[section.tag]
+        local ctx = resolve(context, section.tag)
 
         if not ctx then -- undefined value, nothing to do
           return i, ''
@@ -150,7 +193,7 @@ function render(template, context, config)
         return i, render(text, ctx, config)
       end,
       invertedSection = function (s, i, section)
-        local ctx = context[section.tag]
+        local ctx = resolve(context, section.tag)
         if ctx and (not islist(ctx) or #ctx > 0) then -- it's defined, nothing to do
           return i, ''
         end
