@@ -37,7 +37,7 @@ local config_defaults = {
 --         the section end.
 -- * invertedSection <(string, integer, table) -> string>: a match-time capture
 --     just like section, but applied to inverted sections.
--- * partial <string -> string>: renders partial captures, recieving the
+-- * partial <string -> string>: renders partial captures, receiving the
 --     template to search for.
 -- * comment <string -> string>: renders comments.
 -- * unescapedVar <string -> string>: renders unescaped variables.
