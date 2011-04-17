@@ -3,27 +3,229 @@ package.path = '../src/?.lua;'..package.path
 require 'telescope'
 require 'groucho'
 
+-- extracted from https://github.com/mustache/spec, v1.1.2
+
 context('Comments', function ()
-  it('ignores comments', function ()
-    local base = [[
-<h1>Today{{! ignore me }}.</h1>
-* {{name}}{{! look at me! I'm plenty of fun! :DDD }}
-* {{age}}{{! Hey, don't ignore me, man! That's not cool... }}
-* {{company}}{{! Screw you, man! I've got friends... They're in my head... }}
-* {{{company}}}{{! YEAH, I CUT MYSELF! THAT'S YOUR FAULT! THAT'S SOCIETY'S FAULT!1!}}]]
-
-    local expected = [[
-<h1>Today.</h1>
-* Chris
-* 
-* &lt;b&gt;GitHub&lt;/b&gt;
-* <b>GitHub</b>]]
-
-    local context = {
-      name = "Chris",
-      company = "<b>GitHub</b>"
-    }
+  --[[
+  - name: Inline
+    desc: Comment blocks should be removed from the template.
+    data: { }
+    template: '12345{{! Comment Block! }}67890'
+    expected: '1234567890'
+  --]]
+  it('Inline', function ()
+    local base = '12345{{! Comment Block! }}67890'
+    local expected = '1234567890'
+    local context = {}
 
     assert_equal(expected, groucho.render(base, context))
   end)
+
+  --[=[
+  - name: Multiline
+    desc: Multiline comments should be permitted.
+    data: { }
+    template: |
+      12345{{!
+        This is a
+        multi-line comment...
+      }}67890
+    expected: |
+      1234567890
+  --]=]
+  it('Multiline', function ()
+    local base = [[
+12345{{!
+  This is a
+  multi-line comment...
+}}67890]]
+    local expected = '1234567890'
+    local context = {}
+
+    assert_equal(expected, groucho.render(base, context))
+  end)
+
+  --[=[
+  - name: Standalone
+    desc: All standalone comment lines should be removed.
+    data: { }
+    template: |
+      Begin.
+      {{! Comment Block! }}
+      End.
+    expected: |
+      Begin.
+      End.
+  --]=]
+  it('Standalone', function ()
+    local base = [[
+Begin.
+{{! Comment Block! }}
+End.]]
+    local expected = [[
+Begin.
+End.]]
+    local context = {}
+
+    assert_equal(expected, groucho.render(base, context))
+  end)
+
+  --[=[
+  - name: Indented Standalone
+    desc: All standalone comment lines should be removed.
+    data: { }
+    template: |
+      Begin.
+        {{! Indented Comment Block! }}
+      End.
+    expected: |
+      Begin.
+      End.
+  --]=]
+  it('Indented Standalone', function ()
+    local base = [[
+Begin.
+  {{! Comment Block! }}
+End.]]
+    local expected = [[
+Begin.
+End.]]
+    local context = {}
+
+    assert_equal(expected, groucho.render(base, context))
+  end)
+
+  --[=[
+  - name: Standalone Line Endings
+    desc: '"\r\n" should be considered a newline for standalone tags.'
+    data: { }
+    template: "|\r\n{{! Standalone Comment }}\r\n|"
+    expected: "|\r\n|"
+  --]=]
+  it('Standalone Line Endings', function ()
+    local base = '|\r\n{{! Standalone Comment }}\r\n|'
+    local expected = '|\r\n|'
+    local context = {}
+
+    assert_equal(expected, groucho.render(base, context))
+  end)
+
+  --[=[
+  - name: Standalone Without Previous Line
+    desc: Standalone tags should not require a newline to precede them.
+    data: { }
+    template: "  {{! I'm Still Standalone }}\n!"
+    expected: "!"
+  --]=]
+  it('Standalone Without Previous Line', function ()
+    local base = "  {{! I'm Still Standalone }}\n!"
+    local expected = '!'
+    local context = {}
+
+    assert_equal(expected, groucho.render(base, context))
+  end)
+
+  --[=[
+  - name: Standalone Without Newline
+    desc: Standalone tags should not require a newline to follow them.
+    data: { }
+    template: "!\n  {{! I'm Still Standalone }}"
+    expected: "!\n"
+  --]=]
+  it('Standalone Without Newline', function ()
+    local base = "!\n  {{! I'm Still Standalone }}"
+    local expected = '!\n'
+    local context = {}
+
+    assert_equal(expected, groucho.render(base, context))
+  end)
+
+  --[=[
+  - name: Multiline Standalone
+    desc: All standalone comment lines should be removed.
+    data: { }
+    template: |
+      Begin.
+      {{!
+      Something's going on here...
+      }}
+      End.
+    expected: |
+      Begin.
+      End.
+  --]=]
+  it('Multiline Standalone', function ()
+    local base = [[
+Begin.
+{{!
+Something's going on here...
+}}
+End.]]
+    local expected = [[
+Begin.
+End.]]
+    local context = {}
+
+    assert_equal(expected, groucho.render(base, context))
+  end)
+
+  --[=[
+  - name: Indented Multiline Standalone
+    desc: All standalone comment lines should be removed.
+    data: { }
+    template: |
+      Begin.
+        {{!
+          Something's going on here...
+        }}
+      End.
+    expected: |
+      Begin.
+      End.
+  --]=]
+  it('Indented Multiline Standalone', function ()
+    local base = [[
+Begin.
+  {{!
+    Something's going on here...
+  }}
+End.]]
+    local expected = [[
+Begin.
+End.]]
+    local context = {}
+
+    assert_equal(expected, groucho.render(base, context))
+  end)
+
+  --[=[
+  - name: Indented Inline
+    desc: Inline comments should not strip whitespace
+    data: { }
+    template: "  12 {{! 34 }}\n"
+    expected: "  12 \n"
+  --]=]
+  it('Indented Inline', function ()
+    local base = "  12 {{! 34 }}\n"
+    local expected = "  12 \n"
+    local context = {}
+
+    assert_equal(expected, groucho.render(base, context))
+  end)
+
+  --[=[
+  - name: Surrounding Whitespace
+    desc: Comment removal should preserve surrounding whitespace.
+    data: { }
+    template: '12345 {{! Comment Block! }} 67890'
+    expected: '12345  67890'
+  --]=]
+  it('Surrounding Whitespace', function ()
+    local base = '12345 {{! Comment Block! }} 67890'
+    local expected = '12345  67890'
+    local context = {}
+
+    assert_equal(expected, groucho.render(base, context))
+  end)
+
 end)

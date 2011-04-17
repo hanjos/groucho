@@ -4,10 +4,12 @@ local util = require 'util'
 
 local table_remove, table_concat, io_open =
   table.remove, table.concat, io.open
-local empty_on_nil, islist, escapehtml =
-  util.empty_on_nil, util.islist, util.escapehtml
+local empty_on_nil, islist, escapehtml, atlinestart =
+  util.empty_on_nil, util.islist, util.escapehtml, util.atlinestart
 local assert, ipairs, setmetatable, tostring, type =
   assert, ipairs, setmetatable, tostring, type
+
+local print = print
 
 --- A vanilla Mustache implementation for Lua.
 -- Check http://mustache.github.com/mustache.5.html for the specification.
@@ -40,6 +42,9 @@ local config_defaults = {
 -- * comment <string -> string>: renders comments.
 -- * unescapedVar <string -> string>: renders unescaped variables.
 -- * var <string -> string>: renders normal variables.
+-- * atlinestart <(string, integer) -> (integer | boolean)>: an LPeg
+--     function pattern to check if the index is at the beginning of the
+--     template or of a line. The util module has a suitable implementation.
 grammar = [[
   Start     <- {~ Template ~} !.
   Template  <- (String (Hole String)*)
@@ -47,23 +52,25 @@ grammar = [[
   Hole      <- Section / InvertedSection / Partial / Comment
             / UnescapedVar / Var
   Section   <- (
-    {:tag: OpenSection :}
-    {:textstart: {} :}
-    Template
-    {:textfinish: {} :}
-    CloseSectionWithTag) -> {} => section
+      {:tag: OpenSection :}
+      {:textstart: {} :}
+      Template
+      {:textfinish: {} :}
+      CloseSectionWithTag) -> {} => section
   InvertedSection <- (
-    {:tag: OpenInvertedSection :}
-    {:textstart: {} :}
-    Template
-    {:textfinish: {} :}
-    CloseSectionWithTag) -> {} => invertedSection
-  OpenSection         <- '{{#' { Name } '}}' %s*
-  OpenInvertedSection <- '{{^' { Name } '}}' %s*
-  CloseSection        <- %s* '{{/' Name '}}'
-  CloseSectionWithTag <- {:finalspaces: { %s* } :} '{{/' =tag '}}'
+      {:tag: OpenInvertedSection :}
+      {:textstart: {} :}
+      Template
+      {:textfinish: {} :}
+      CloseSectionWithTag) -> {} => invertedSection
+    OpenSection         <- '{{#' { Name } '}}' %s*
+    OpenInvertedSection <- '{{^' { Name } '}}' %s*
+    CloseSection        <- %s* '{{/' Name '}}'
+    CloseSectionWithTag <- {:finalspaces: { %s* } :} '{{/' =tag '}}'
   Partial         <- ('{{>' %s* { Name } %s* '}}') -> partial
-  Comment         <- ('{{!' { (!'}}' .)* } '}}') -> comment
+  Comment         <- (StandaloneComment / InlineComment) -> comment
+    StandaloneComment <- %atlinestart %s* InlineComment (!%nl %s)* (%nl / !.)
+    InlineComment     <- '{{!' { (!'}}' .)* } '}}'
   UnescapedVar    <- ('{{{' %s* { (!(%s* '}}}') .)* } %s* '}}}'
                   / '{{&' %s* { Name } %s* '}}') -> unescapedVar
   Var             <- ('{{' ![!#>/{&^] %s* { Name } %s* '}}') -> var
@@ -89,7 +96,8 @@ function render(template, context, config)
   config = setmetatable(config or {}, config_defaults)
 
   local patt = re.compile(grammar,
-    { unescapedVar = function (var) return empty_on_nil(context[var]) end,
+    { atlinestart = atlinestart,
+      unescapedVar = function (var) return empty_on_nil(context[var]) end,
       var = function (var) return escapehtml(empty_on_nil(context[var])) end,
       comment = function (comment) return '' end,
       partial = function (partial)

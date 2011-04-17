@@ -1,12 +1,13 @@
 --[[ imports and aliases ]]
 local ipairs, pairs, tostring, type = ipairs, pairs, tostring, type 
 
+local re = require 're'
+
 --- Some utility functions.
 --
 -- @author Humberto Anjos
 module 'util'
 
---[[ exports ]]
 --- Converts v to a string (the empty string if v is nil).
 --
 -- Parameters:
@@ -51,4 +52,21 @@ end
 function escapehtml(v)
   return v:gsub('&', '&amp;'):gsub('\\', '&#92;')
           :gsub('"', '&quot;'):gsub('<', '&lt;'):gsub('>', '&gt;')
+end
+
+-- Pattern to detect linebreaks.
+local NL = re.compile '%nl'
+
+--- Detects if the index is at the beginning of the string or of a line.
+-- This function is an re-compatible pattern.
+--
+-- Parameters:
+-- * s <string>: the string to analyze.
+-- * i <integer>: the index.
+--
+-- Returns:
+-- * <integer | boolean>: i, if it's at the beginning of a line, or false
+--     otherwise.
+function atlinestart(s, i)
+  return (i == 1 or NL:match(s:sub(i - 1, i - 1))) and i or false
 end
