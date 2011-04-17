@@ -62,24 +62,6 @@ Shown.
     assert_equal(expected, groucho.render(base, context))
   end)
 
-  it('handles sections with functions', function ()
-    local base = [[
-{{#wrapped}}
-  {{name}} is awesome.
-{{/wrapped}}]]
-
-    local expected = [[<b>Willy is awesome.</b>]]
-
-    local context = {
-      name = "Willy",
-      wrapped = function(text, context, config)
-        return "<b>" .. groucho.render(text, context, config) .. "</b>"
-      end
-    }
-
-    assert_equal(expected, groucho.render(base, context))
-  end)
-
   it('handles sections with tables', function ()
     local base = [[
 {{#person?}}

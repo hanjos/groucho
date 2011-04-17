@@ -155,8 +155,24 @@ function render(template, context, config, state)
 
   local patt = re.compile(grammar,
     { atlinestart = function (s, i) return not state.insection and atlinestart(s, i) end,
-      unescapedVar = function (var) return empty_on_nil(resolve(context, var)) end,
-      var = function (var) return escapehtml(empty_on_nil(resolve(context, var))) end,
+      unescapedVar = function (var)
+        local resolvedvar = resolve(context, var)
+
+        if type(resolvedvar) == 'function' then
+          return empty_on_nil(render(resolvedvar(), context, config, state))
+        end
+
+        return empty_on_nil(resolvedvar)
+      end,
+      var = function (var)
+        local resolvedvar = resolve(context, var)
+
+        if type(resolvedvar) == 'function' then
+          return escapehtml(empty_on_nil(render(resolvedvar(), context, config, state)))
+        end
+
+        return escapehtml(empty_on_nil(resolvedvar))
+      end,
       comment = function (comment) return '' end,
       partial = function (partial)
         if not config.template_path then -- file not found
@@ -182,7 +198,7 @@ function render(template, context, config, state)
           local text = s:sub(section.textstart, section.textfinish - 1)
 
           if type(ctx) == 'function' then -- call it to provide the result
-            return i, ctx(text, context, config, state)
+            return i, render(ctx(text), context, config, state)
           end
 
           if type(ctx) ~= 'table' then -- only the truth matters

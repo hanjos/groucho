@@ -509,5 +509,28 @@ context('Interpolation', function ()
 
       assert_equal(groucho.render(template, data), expected)
     end)
+
+    it('Variables with Non-Letter Characters in the Name', function ()
+      local template = [[
+        * {{name?}}
+        * {{age!}}
+        * {{123company_in_bold}}
+        * {{& =1+2}}]]
+
+      local expected = [[
+        * Chris
+        * 29
+        * &lt;b&gt;GitHub&lt;/b&gt;
+        * <b>GitHub</b>]]
+
+      local data = {
+        ['name?'] = "Chris",
+        ['age!'] = "29",
+        ['123company_in_bold'] = "<b>GitHub</b>",
+        ['=1+2'] = "<b>GitHub</b>",
+      }
+
+      assert_equal(groucho.render(template, data), expected)
+    end)
   end)
 end)
