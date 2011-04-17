@@ -17,11 +17,11 @@ context('Interpolation', function ()
           Hello from {Mustache}!
       --]=]
       it('No Interpolation', function ()
-        local base = 'Hello from {Mustache}!'
+        local template = 'Hello from {Mustache}!'
         local expected = 'Hello from {Mustache}!'
-        local context = {}
+        local data = {}
 
-        assert_equal(expected, groucho.render(base, context))
+        assert_equal(groucho.render(template, data), expected)
       end)
 
       --[=[
@@ -34,11 +34,11 @@ context('Interpolation', function ()
           Hello, world!
       --]=]
       it('Basic Interpolation', function ()
-        local base = 'Hello, {{subject}}!'
+        local template = 'Hello, {{subject}}!'
         local expected = 'Hello, world!'
-        local context = { subject = 'world' }
+        local data = { subject = 'world' }
 
-        assert_equal(expected, groucho.render(base, context))
+        assert_equal(groucho.render(template, data), expected)
       end)
 
       --[=[
@@ -51,11 +51,11 @@ context('Interpolation', function ()
           These characters should be HTML escaped: &amp; &quot; &lt; &gt;
       --]=]
       it('HTML Escaping', function ()
-        local base = 'These characters should be HTML escaped: {{forbidden}}'
+        local template = 'These characters should be HTML escaped: {{forbidden}}'
         local expected = 'These characters should be HTML escaped: &amp; &quot; &lt; &gt;'
-        local context = { forbidden = '& " < >' }
+        local data = { forbidden = '& " < >' }
 
-        assert_equal(expected, groucho.render(base, context))
+        assert_equal(groucho.render(template, data), expected)
       end)
 
       --[=[
@@ -68,11 +68,11 @@ context('Interpolation', function ()
           These characters should not be HTML escaped: & " < >
       --]=]
       it('Triple Mustache', function ()
-        local base = 'These characters should not be HTML escaped: {{{forbidden}}}'
+        local template = 'These characters should not be HTML escaped: {{{forbidden}}}'
         local expected = 'These characters should not be HTML escaped: & " < >'
-        local context = { forbidden = '& " < >' }
+        local data = { forbidden = '& " < >' }
 
-        assert_equal(expected, groucho.render(base, context))
+        assert_equal(groucho.render(template, data), expected)
       end)
 
       --[=[
@@ -85,11 +85,11 @@ context('Interpolation', function ()
           These characters should not be HTML escaped: & " < >
       --]=]
       it('Ampersand', function ()
-        local base = 'These characters should not be HTML escaped: {{&forbidden}}'
+        local template = 'These characters should not be HTML escaped: {{&forbidden}}'
         local expected = 'These characters should not be HTML escaped: & " < >'
-        local context = { forbidden = '& " < >' }
+        local data = { forbidden = '& " < >' }
 
-        assert_equal(expected, groucho.render(base, context))
+        assert_equal(groucho.render(template, data), expected)
       end)
 
       --[=[
@@ -100,11 +100,11 @@ context('Interpolation', function ()
         expected: '"85 miles an hour!"'
       --]=]
       it('Basic Integer Interpolation', function ()
-        local base = '"{{mph}} miles an hour!"'
+        local template = '"{{mph}} miles an hour!"'
         local expected = '"85 miles an hour!"'
-        local context = { mph = 85 }
+        local data = { mph = 85 }
 
-        assert_equal(expected, groucho.render(base, context))
+        assert_equal(groucho.render(template, data), expected)
       end)
 
       --[=[
@@ -115,11 +115,11 @@ context('Interpolation', function ()
         expected: '"85 miles an hour!"'
       --]=]
       it('Basic Integer Interpolation', function ()
-        local base = '"{{{mph}}} miles an hour!"'
+        local template = '"{{{mph}}} miles an hour!"'
         local expected = '"85 miles an hour!"'
-        local context = { mph = 85 }
+        local data = { mph = 85 }
 
-        assert_equal(expected, groucho.render(base, context))
+        assert_equal(groucho.render(template, data), expected)
       end)
 
       --[=[
@@ -130,11 +130,11 @@ context('Interpolation', function ()
         expected: '"85 miles an hour!"'
       --]=]
       it('Ampersand Integer Interpolation', function ()
-        local base = '"{{&mph}} miles an hour!"'
+        local template = '"{{&mph}} miles an hour!"'
         local expected = '"85 miles an hour!"'
-        local context = { mph = 85 }
+        local data = { mph = 85 }
 
-        assert_equal(expected, groucho.render(base, context))
+        assert_equal(groucho.render(template, data), expected)
       end)
 
       --[=[
@@ -145,11 +145,11 @@ context('Interpolation', function ()
         expected: '"1.21 jiggawatts!"'
       --]=]
       it('Basic Decimal Interpolation', function ()
-        local base = '"{{power}} jiggawatts!"'
+        local template = '"{{power}} jiggawatts!"'
         local expected = '"1.21 jiggawatts!"'
-        local context = { power = 1.210 }
+        local data = { power = 1.210 }
 
-        assert_equal(expected, groucho.render(base, context))
+        assert_equal(groucho.render(template, data), expected)
       end)
 
       --[=[
@@ -160,11 +160,11 @@ context('Interpolation', function ()
         expected: '"1.21 jiggawatts!"'
       --]=]
       it('Triple Mustache Decimal Interpolation', function ()
-        local base = '"{{{power}}} jiggawatts!"'
+        local template = '"{{{power}}} jiggawatts!"'
         local expected = '"1.21 jiggawatts!"'
-        local context = { power = 1.210 }
+        local data = { power = 1.210 }
 
-        assert_equal(expected, groucho.render(base, context))
+        assert_equal(groucho.render(template, data), expected)
       end)
 
       --[=[
@@ -175,11 +175,11 @@ context('Interpolation', function ()
         expected: '"1.21 jiggawatts!"'
       --]=]
       it('Ampersand Decimal Interpolation', function ()
-        local base = '"{{&power}} jiggawatts!"'
+        local template = '"{{&power}} jiggawatts!"'
         local expected = '"1.21 jiggawatts!"'
-        local context = { power = 1.210 }
+        local data = { power = 1.210 }
 
-        assert_equal(expected, groucho.render(base, context))
+        assert_equal(groucho.render(template, data), expected)
       end)
   end)
 
@@ -192,11 +192,11 @@ context('Interpolation', function ()
       expected: "I () be seen!"
     --]=]
     it('Basic Context Miss Interpolation', function ()
-      local base = 'I ({{cannot}}) be seen!'
+      local template = 'I ({{cannot}}) be seen!'
       local expected = 'I () be seen!'
-      local context = {}
+      local data = {}
 
-      assert_equal(expected, groucho.render(base, context))
+      assert_equal(groucho.render(template, data), expected)
     end)
 
     --[=[
@@ -207,11 +207,11 @@ context('Interpolation', function ()
       expected: "I () be seen!"
     --]=]
     it('Triple Mustache Context Miss Interpolation', function ()
-      local base = 'I ({{{cannot}}}) be seen!'
+      local template = 'I ({{{cannot}}}) be seen!'
       local expected = 'I () be seen!'
-      local context = {}
+      local data = {}
 
-      assert_equal(expected, groucho.render(base, context))
+      assert_equal(groucho.render(template, data), expected)
     end)
 
     --[=[
@@ -222,11 +222,11 @@ context('Interpolation', function ()
       expected: "I () be seen!"
     --]=]
     it('Ampersand Context Miss Interpolation', function ()
-      local base = 'I ({{&cannot}}) be seen!'
+      local template = 'I ({{&cannot}}) be seen!'
       local expected = 'I () be seen!'
-      local context = {}
+      local data = {}
 
-      assert_equal(expected, groucho.render(base, context))
+      assert_equal(groucho.render(template, data), expected)
     end)
   end)
   -- Dotted Names
@@ -240,11 +240,11 @@ context('Interpolation', function ()
       expected: '"Joe" == "Joe"'
     --]=]
     it('Dotted Names - Basic Interpolation', function ()
-      local base = '"{{person.name}}" == "{{#person}}{{name}}{{/person}}"'
+      local template = '"{{person.name}}" == "{{#person}}{{name}}{{/person}}"'
       local expected = '"Joe" == "Joe"'
-      local context = { person = { name = 'Joe' } }
+      local data = { person = { name = 'Joe' } }
 
-      assert_equal(expected, groucho.render(base, context))
+      assert_equal(groucho.render(template, data), expected)
     end)
 
     --[=[
@@ -255,11 +255,11 @@ context('Interpolation', function ()
       expected: '"Joe" == "Joe"'
     --]=]
     it('Dotted Names - Triple Mustache Interpolation', function ()
-      local base = '"{{person.name}}" == "{{#person}}{{name}}{{/person}}"'
+      local template = '"{{person.name}}" == "{{#person}}{{name}}{{/person}}"'
       local expected = '"Joe" == "Joe"'
-      local context = { person = { name = 'Joe' } }
+      local data = { person = { name = 'Joe' } }
 
-      assert_equal(expected, groucho.render(base, context))
+      assert_equal(groucho.render(template, data), expected)
     end)
 
     --[=[
@@ -270,11 +270,11 @@ context('Interpolation', function ()
       expected: '"Joe" == "Joe"'
     --]=]
     it('Dotted Names - Ampersand Interpolation', function ()
-      local base = '"{{person.name}}" == "{{#person}}{{name}}{{/person}}"'
+      local template = '"{{person.name}}" == "{{#person}}{{name}}{{/person}}"'
       local expected = '"Joe" == "Joe"'
-      local context = { person = { name = 'Joe' } }
+      local data = { person = { name = 'Joe' } }
 
-      assert_equal(expected, groucho.render(base, context))
+      assert_equal(groucho.render(template, data), expected)
     end)
 
     --[=[
@@ -286,11 +286,11 @@ context('Interpolation', function ()
       expected: '"Phil" == "Phil"'
     --]=]
     it('Dotted Names - Arbitrary Depth', function ()
-      local base = '"{{a.b.c.d.e.name}}" == "Phil"'
+      local template = '"{{a.b.c.d.e.name}}" == "Phil"'
       local expected = '"Phil" == "Phil"'
-      local context = { a = { b = { c = { d = { e = { name = 'Phil' } } } } } }
+      local data = { a = { b = { c = { d = { e = { name = 'Phil' } } } } } }
 
-      assert_equal(expected, groucho.render(base, context))
+      assert_equal(groucho.render(template, data), expected)
     end)
 
     --[=[
@@ -302,11 +302,11 @@ context('Interpolation', function ()
       expected: '"" == ""'
     --]=]
     it('Dotted Names - Broken Chains', function ()
-      local base = '"{{a.b.c}}" == ""'
+      local template = '"{{a.b.c}}" == ""'
       local expected = '"" == ""'
-      local context = { a = {} }
+      local data = { a = {} }
 
-      assert_equal(expected, groucho.render(base, context))
+      assert_equal(groucho.render(template, data), expected)
     end)
 
     --[=[
@@ -319,13 +319,13 @@ context('Interpolation', function ()
       expected: '"" == ""'
     --]=]
     it('Dotted Names - Broken Chain Resolution', function ()
-      local base = '"{{a.b.c.name}}" == ""'
+      local template = '"{{a.b.c.name}}" == ""'
       local expected = '"" == ""'
-      local context = {
+      local data = {
         a = { b = {} },
         c = { name = 'Jim' } }
 
-      assert_equal(expected, groucho.render(base, context))
+      assert_equal(groucho.render(template, data), expected)
     end)
 
     --[=[
@@ -338,13 +338,13 @@ context('Interpolation', function ()
       expected: '"Phil" == "Phil"'
     --]=]
     it('Dotted Names - Initial Resolution', function ()
-      local base = '"{{#a}}{{b.c.d.e.name}}{{/a}}" == "Phil"'
+      local template = '"{{#a}}{{b.c.d.e.name}}{{/a}}" == "Phil"'
       local expected = '"Phil" == "Phil"'
-      local context = {
+      local data = {
         a = { b = { c = { d = { e = { name = 'Phil' } } } } },
         b = { c = { d = { e = { name = 'Wrong' } } } } }
 
-      assert_equal(expected, groucho.render(base, context))
+      assert_equal(groucho.render(template, data), expected)
     end)
   end)
 
@@ -357,11 +357,11 @@ context('Interpolation', function ()
       expected: '| --- |'
     --]=]
     it('Interpolation - Surrounding Whitespace', function ()
-      local base = '| {{string}} |'
+      local template = '| {{string}} |'
       local expected = '| --- |'
-      local context = { string = '---' }
+      local data = { string = '---' }
 
-      assert_equal(expected, groucho.render(base, context))
+      assert_equal(groucho.render(template, data), expected)
     end)
 
     --[=[
@@ -372,11 +372,11 @@ context('Interpolation', function ()
       expected: '| --- |'
     --]=]
     it('Triple Mustache - Surrounding Whitespace', function ()
-      local base = '| {{{string}}} |'
+      local template = '| {{{string}}} |'
       local expected = '| --- |'
-      local context = { string = '---' }
+      local data = { string = '---' }
 
-      assert_equal(expected, groucho.render(base, context))
+      assert_equal(groucho.render(template, data), expected)
     end)
 
     --[=[
@@ -387,11 +387,11 @@ context('Interpolation', function ()
       expected: '| --- |'
     --]=]
     it('Ampersand - Surrounding Whitespace', function ()
-      local base = '| {{&string}} |'
+      local template = '| {{&string}} |'
       local expected = '| --- |'
-      local context = { string = '---' }
+      local data = { string = '---' }
 
-      assert_equal(expected, groucho.render(base, context))
+      assert_equal(groucho.render(template, data), expected)
     end)
 
     --[=[
@@ -402,11 +402,11 @@ context('Interpolation', function ()
       expected: "  ---\n"
     --]=]
     it('Interpolation - Standalone', function ()
-      local base = '  {{string}}\n'
+      local template = '  {{string}}\n'
       local expected = '  ---\n'
-      local context = { string = '---' }
+      local data = { string = '---' }
 
-      assert_equal(expected, groucho.render(base, context))
+      assert_equal(groucho.render(template, data), expected)
     end)
 
     --[=[
@@ -417,11 +417,11 @@ context('Interpolation', function ()
       expected: "  ---\n"
     --]=]
     it('Triple Mustache - Standalone', function ()
-      local base = '  {{{string}}}\n'
+      local template = '  {{{string}}}\n'
       local expected = '  ---\n'
-      local context = { string = '---' }
+      local data = { string = '---' }
 
-      assert_equal(expected, groucho.render(base, context))
+      assert_equal(groucho.render(template, data), expected)
     end)
 
     --[=[
@@ -432,11 +432,11 @@ context('Interpolation', function ()
       expected: "  ---\n"
     --]=]
     it('Ampersand - Standalone', function ()
-      local base = '  {{&string}}\n'
+      local template = '  {{&string}}\n'
       local expected = '  ---\n'
-      local context = { string = '---' }
+      local data = { string = '---' }
 
-      assert_equal(expected, groucho.render(base, context))
+      assert_equal(groucho.render(template, data), expected)
     end)
   end)
 
@@ -449,11 +449,11 @@ context('Interpolation', function ()
       expected: '|---|'
     --]=]
     it('Interpolation With Padding', function ()
-      local base = '|{{ string }}|'
+      local template = '|{{ string }}|'
       local expected = '|---|'
-      local context = { string = '---' }
+      local data = { string = '---' }
 
-      assert_equal(expected, groucho.render(base, context))
+      assert_equal(groucho.render(template, data), expected)
     end)
 
     --[=[
@@ -464,11 +464,11 @@ context('Interpolation', function ()
       expected: '|---|'
     --]=]
     it('Triple Mustache With Padding', function ()
-      local base = '|{{{ string }}}|'
+      local template = '|{{{ string }}}|'
       local expected = '|---|'
-      local context = { string = '---' }
+      local data = { string = '---' }
 
-      assert_equal(expected, groucho.render(base, context))
+      assert_equal(groucho.render(template, data), expected)
     end)
 
     --[=[
@@ -479,11 +479,35 @@ context('Interpolation', function ()
       expected: '|---|'
     --]=]
     it('Ampersand With Padding', function ()
-      local base = '|{{& string }}|'
+      local template = '|{{& string }}|'
       local expected = '|---|'
-      local context = { string = '---' }
+      local data = { string = '---' }
 
-      assert_equal(expected, groucho.render(base, context))
+      assert_equal(groucho.render(template, data), expected)
+    end)
+  end)
+
+  context('Lua Specifics', function ()
+    it("Doesn't See Non-String Variables", function ()
+      local template = [[
+        * {{1}}
+        * {{{2}}}
+        * {{3}}]]
+
+      local expected = [[
+        * Chris
+        * 29
+        * ]]
+
+      local data = {
+        ['1'] = "Chris",
+        [1] = "Angela",
+        ['2'] = "29",
+        [2] = "40, but gosh doesn't she look like she's 29?",
+        [3] = "Help! I'm invisible!",
+      }
+
+      assert_equal(groucho.render(template, data), expected)
     end)
   end)
 end)

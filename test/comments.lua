@@ -14,11 +14,11 @@ context('Comments', function ()
     expected: '1234567890'
   --]]
   it('Inline', function ()
-    local base = '12345{{! Comment Block! }}67890'
+    local template = '12345{{! Comment Block! }}67890'
     local expected = '1234567890'
-    local context = {}
+    local data = {}
 
-    assert_equal(expected, groucho.render(base, context))
+    assert_equal(groucho.render(template, data), expected)
   end)
 
   --[=[
@@ -34,15 +34,15 @@ context('Comments', function ()
       1234567890
   --]=]
   it('Multiline', function ()
-    local base = [[
+    local template = [[
 12345{{!
   This is a
   multi-line comment...
 }}67890]]
     local expected = '1234567890'
-    local context = {}
+    local data = {}
 
-    assert_equal(expected, groucho.render(base, context))
+    assert_equal(groucho.render(template, data), expected)
   end)
 
   --[=[
@@ -58,16 +58,16 @@ context('Comments', function ()
       End.
   --]=]
   it('Standalone', function ()
-    local base = [[
+    local template = [[
 Begin.
 {{! Comment Block! }}
 End.]]
     local expected = [[
 Begin.
 End.]]
-    local context = {}
+    local data = {}
 
-    assert_equal(expected, groucho.render(base, context))
+    assert_equal(groucho.render(template, data), expected)
   end)
 
   --[=[
@@ -83,16 +83,16 @@ End.]]
       End.
   --]=]
   it('Indented Standalone', function ()
-    local base = [[
+    local template = [[
 Begin.
   {{! Comment Block! }}
 End.]]
     local expected = [[
 Begin.
 End.]]
-    local context = {}
+    local data = {}
 
-    assert_equal(expected, groucho.render(base, context))
+    assert_equal(groucho.render(template, data), expected)
   end)
 
   --[=[
@@ -103,11 +103,11 @@ End.]]
     expected: "|\r\n|"
   --]=]
   it('Standalone Line Endings', function ()
-    local base = '|\r\n{{! Standalone Comment }}\r\n|'
+    local template = '|\r\n{{! Standalone Comment }}\r\n|'
     local expected = '|\r\n|'
-    local context = {}
+    local data = {}
 
-    assert_equal(expected, groucho.render(base, context))
+    assert_equal(groucho.render(template, data), expected)
   end)
 
   --[=[
@@ -118,11 +118,11 @@ End.]]
     expected: "!"
   --]=]
   it('Standalone Without Previous Line', function ()
-    local base = "  {{! I'm Still Standalone }}\n!"
+    local template = "  {{! I'm Still Standalone }}\n!"
     local expected = '!'
-    local context = {}
+    local data = {}
 
-    assert_equal(expected, groucho.render(base, context))
+    assert_equal(groucho.render(template, data), expected)
   end)
 
   --[=[
@@ -133,11 +133,11 @@ End.]]
     expected: "!\n"
   --]=]
   it('Standalone Without Newline', function ()
-    local base = "!\n  {{! I'm Still Standalone }}"
+    local template = "!\n  {{! I'm Still Standalone }}"
     local expected = '!\n'
-    local context = {}
+    local data = {}
 
-    assert_equal(expected, groucho.render(base, context))
+    assert_equal(groucho.render(template, data), expected)
   end)
 
   --[=[
@@ -155,7 +155,7 @@ End.]]
       End.
   --]=]
   it('Multiline Standalone', function ()
-    local base = [[
+    local template = [[
 Begin.
 {{!
 Something's going on here...
@@ -164,9 +164,9 @@ End.]]
     local expected = [[
 Begin.
 End.]]
-    local context = {}
+    local data = {}
 
-    assert_equal(expected, groucho.render(base, context))
+    assert_equal(groucho.render(template, data), expected)
   end)
 
   --[=[
@@ -184,7 +184,7 @@ End.]]
       End.
   --]=]
   it('Indented Multiline Standalone', function ()
-    local base = [[
+    local template = [[
 Begin.
   {{!
     Something's going on here...
@@ -193,9 +193,9 @@ End.]]
     local expected = [[
 Begin.
 End.]]
-    local context = {}
+    local data = {}
 
-    assert_equal(expected, groucho.render(base, context))
+    assert_equal(groucho.render(template, data), expected)
   end)
 
   --[=[
@@ -206,11 +206,11 @@ End.]]
     expected: "  12 \n"
   --]=]
   it('Indented Inline', function ()
-    local base = "  12 {{! 34 }}\n"
+    local template = "  12 {{! 34 }}\n"
     local expected = "  12 \n"
-    local context = {}
+    local data = {}
 
-    assert_equal(expected, groucho.render(base, context))
+    assert_equal(groucho.render(template, data), expected)
   end)
 
   --[=[
@@ -221,11 +221,11 @@ End.]]
     expected: '12345  67890'
   --]=]
   it('Surrounding Whitespace', function ()
-    local base = '12345 {{! Comment Block! }} 67890'
+    local template = '12345 {{! Comment Block! }} 67890'
     local expected = '12345  67890'
-    local context = {}
+    local data = {}
 
-    assert_equal(expected, groucho.render(base, context))
+    assert_equal(groucho.render(template, data), expected)
   end)
 
 end)

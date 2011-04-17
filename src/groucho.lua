@@ -6,8 +6,8 @@ local table_remove, table_concat, io_open =
   table.remove, table.concat, io.open
 local empty_on_nil, islist, escapehtml, atlinestart, split =
   util.empty_on_nil, util.islist, util.escapehtml, util.atlinestart, util.split
-local assert, ipairs, setmetatable, tostring, type =
-  assert, ipairs, setmetatable, tostring, type
+local assert, ipairs, setmetatable, tostring, type, unpack =
+  assert, ipairs, setmetatable, tostring, type, unpack
 
 local print = print
 
@@ -22,6 +22,17 @@ module 'groucho'
 local config_defaults = {
   __index = { template_path = '.', template_extension = 'mustache' } 
 }
+
+local function runInSection(state, func)
+  return function (...)
+    state.insection = true
+
+    local results = { func(...) }
+
+    state.insection = false
+    return unpack(results)
+  end
+end
 
 --[[ exports ]]
 --- The PEG which matches mustache templates and does the basic captures.
@@ -48,7 +59,8 @@ local config_defaults = {
 grammar = [[
   Start     <- {~ Template ~} !.
   Template  <- (String (Hole String)*)
-  String    <- (!Hole !OpenSection !OpenInvertedSection !CloseSection .)*
+  String    <- (!Hole !OpenSection !OpenInvertedSection !CloseSection
+      !StandaloneOpenSection !StandaloneOpenInvertedSection !StandaloneCloseSection .)*
   Hole      <- Section / InvertedSection / Partial / Comment
             / UnescapedVar / Var
   Section   <- (
@@ -56,21 +68,25 @@ grammar = [[
       {:textstart: {} :}
       Template
       {:textfinish: {} :}
-      CloseSectionWithTag) -> {} => section
+      (StandaloneCloseSectionWithTag / ({:finalspaces: %s* :} CloseSectionWithTag))) -> {} => section
   InvertedSection <- (
-      {:tag: OpenInvertedSection :}
+      {:tag: StandaloneOpenInvertedSection / OpenInvertedSection :}
       {:textstart: {} :}
-      Template
+      {~ Template ~}
       {:textfinish: {} :}
-      CloseSectionWithTag) -> {} => invertedSection
-    OpenSection         <- '{{#' { Name } '}}' %s*
-    OpenInvertedSection <- '{{^' { Name } '}}' %s*
-    CloseSection        <- %s* '{{/' Name '}}'
-    CloseSectionWithTag <- {:finalspaces: { %s* } :} '{{/' =tag '}}'
+      (StandaloneCloseSectionWithTag / ({:finalspaces: %s* :} CloseSectionWithTag))) -> {} => invertedSection
+    OpenSection         <- '{{#' %s* { Name } %s* '}}'
+    OpenInvertedSection <- '{{^' %s* { Name } %s* '}}'
+    CloseSection        <- '{{/' %s* Name %s* '}}'
+    CloseSectionWithTag <- '{{/' %s* =tag %s* '}}'
+    StandaloneOpenSection         <- %atlinestart (!%nl %s)* OpenSection         (!%nl %s)* %nl
+    StandaloneOpenInvertedSection <- %atlinestart (!%nl %s)* OpenInvertedSection (!%nl %s)* %nl
+    StandaloneCloseSection        <- %atlinestart (!%nl %s)* CloseSection        (!%nl %s)* (%nl / !.)
+    StandaloneCloseSectionWithTag <- %atlinestart (!%nl %s)* CloseSectionWithTag (!%nl %s)* (%nl / !.)
   Partial         <- ('{{>' %s* { Name } %s* '}}') -> partial
   Comment         <- (StandaloneComment / InlineComment) -> comment
-    StandaloneComment <- %atlinestart %s* InlineComment (!%nl %s)* (%nl / !.)
-    InlineComment     <- '{{!' { (!'}}' .)* } '}}'
+    StandaloneComment <- %atlinestart (!%nl %s)* InlineComment (!%nl %s)* (%nl / !.)
+    InlineComment     <- '{{!' (!'}}' .)* '}}'
   UnescapedVar    <- ('{{{' %s* { (!(%s* '}}}') .)* } %s* '}}}'
                   / '{{&' %s* { Name } %s* '}}') -> unescapedVar
   Var             <- ('{{' ![!#>/{&^] %s* { Name } %s* '}}') -> var
@@ -96,9 +112,7 @@ function resolve(context, var)
 
   if #path == 0 then
     return nil
-  end
-
-  if #path == 1 then
+  elseif #path == 1 then
     return context[var]
   end
 
@@ -135,11 +149,12 @@ end
 --
 -- Returns:
 -- * <string> a rendered version of the template.
-function render(template, context, config)
+function render(template, context, config, state)
   config = setmetatable(config or {}, config_defaults)
+  state = state or {}
 
   local patt = re.compile(grammar,
-    { atlinestart = atlinestart,
+    { atlinestart = function (s, i) return not state.insection and atlinestart(s, i) end,
       unescapedVar = function (var) return empty_on_nil(resolve(context, var)) end,
       var = function (var) return escapehtml(empty_on_nil(resolve(context, var))) end,
       comment = function (comment) return '' end,
@@ -155,52 +170,55 @@ function render(template, context, config)
         local text = assert(io_open(location, 'r')):read '*a'
         
         -- include it and evaluate it here
-        return render(text, context, config)
+        return render(text, context, config, state)
       end,
-      section = function (s, i, section)
-        local ctx = resolve(context, section.tag)
+      section = runInSection(state, function (s, i, section)
+          local ctx = resolve(context, section.tag)
 
-        if not ctx then -- undefined value, nothing to do
-          return i, ''
-        end
-
-        local text = s:sub(section.textstart, section.textfinish - 1)
-
-        if type(ctx) == 'function' then -- call it to provide the result
-          return i, ctx(text, context, config)
-        end
-
-        if type(ctx) ~= 'table' then -- only the truth matters
-          return i, render(text, context, config)
-        end
-
-        if islist(ctx) then
-          if #ctx == 0 then -- empty list, nothing to do
+          if not ctx then -- undefined value, nothing to do
             return i, ''
           end
 
-          -- render text for each subcontext and accumulate the results
-          local results = {}
-          for _, subctx in ipairs(ctx) do
-            results[#results + 1] = render(text, subctx, config)
+          local text = s:sub(section.textstart, section.textfinish - 1)
+
+          if type(ctx) == 'function' then -- call it to provide the result
+            return i, ctx(text, context, config, state)
           end
 
-          -- use the spaces 
-          return i, table_concat(results, section.finalspaces)
-        end
+          if type(ctx) ~= 'table' then -- only the truth matters
+            return i, render(text, context, config, state)
+          end
 
-        -- ctx is a hash table, use it as the new context
-        return i, render(text, ctx, config)
-      end,
-      invertedSection = function (s, i, section)
+          if islist(ctx) then
+            if #ctx == 0 then -- empty list, nothing to do
+              return i, ''
+            end
+
+            -- render text for each subcontext and accumulate the results
+            local results = {}
+            for _, subctx in ipairs(ctx) do
+              results[#results + 1] = render(text, subctx, config, state)
+            end
+
+            -- use the spaces
+            return i, table_concat(results, section.finalspaces or '')
+          end
+
+          -- ctx is a hash table, use it as the new context
+          return i, render(text, ctx, config, state)
+        end),
+      invertedSection = runInSection(state, function (s, i, section)
         local ctx = resolve(context, section.tag)
         if ctx and (not islist(ctx) or #ctx > 0) then -- it's defined, nothing to do
           return i, ''
         end
 
         -- just spit out the text
-        return i, s:sub(section.textstart, section.textfinish - 1)
-      end, })
+        local finalspaces = empty_on_nil(section.finalspaces)
+        local text = s:sub(section.textstart, (section.textfinish + #finalspaces) - 1)
+
+        return i, render(text, context, config, state)
+      end), })
 
   return patt:match(template)
 end

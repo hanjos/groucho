@@ -107,29 +107,6 @@ context('Variables', function ()
     assert_equal(expected, groucho.render(base, context))
   end)
 
-  it("doesn't look for non-string keys in the context", function ()
-    local base = [[
-* {{1}}
-* {{{2}}}
-* {{3}}]]
-
-    local expected = [[
-* Chris
-* 29
-* ]]
-
-    local context = {
-      ['1'] = "Chris",
-      [1] = "Angela",
-      ['2'] = "29",
-      [2] = "40, but gosh doesn't she look like she's 29?",
-      ['=1+2'] = "whatever",
-      [3] = "Help! I'm invisible!",
-    }
-
-    assert_equal(expected, groucho.render(base, context))
-  end)
-
   it('converts context values to strings before rendering', function ()
     local base = [[
 * {{name}}
