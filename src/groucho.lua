@@ -44,8 +44,8 @@ grammar = [[
   Start     <- {~ Template ~} !.
   Template  <- (String (Hole String)*)
   String    <- (!Hole !OpenSection !OpenInvertedSection !CloseSection .)*
-  Hole      <- Section / InvertedSection / Partial
-            / UnescapedVar / Comment / Var
+  Hole      <- Section / InvertedSection / Partial / Comment
+            / UnescapedVar / Var
   Section   <- (
     {:tag: OpenSection :}
     {:textstart: {} :}
@@ -61,12 +61,12 @@ grammar = [[
   OpenSection         <- '{{#' { Name } '}}' %s*
   OpenInvertedSection <- '{{^' { Name } '}}' %s*
   CloseSection        <- %s* '{{/' Name '}}'
-  CloseSectionWithTag <- %s* '{{/' =tag '}}'
+  CloseSectionWithTag <- {:finalspaces: { %s* } :} '{{/' =tag '}}'
   Partial         <- ('{{>' %s* { Name } %s* '}}') -> partial
-  Comment         <- ('{{!' { Name } '}}') -> comment
+  Comment         <- ('{{!' { (!'}}' .)* } '}}') -> comment
   UnescapedVar    <- ('{{{' %s* { (!(%s* '}}}') .)* } %s* '}}}'
                   / '{{&' %s* { Name } %s* '}}') -> unescapedVar
-  Var             <- ('{{' %s* { Name } %s* '}}') -> var
+  Var             <- ('{{' ![!#>/{&^] %s* { Name } %s* '}}') -> var
   Name  <- (!(%s* '}}') .)*
 ]]
 
@@ -108,6 +108,7 @@ function render(template, context, config)
       end,
       section = function (s, i, section)
         local ctx = context[section.tag]
+
         if not ctx then -- undefined value, nothing to do
           return i, ''
         end
@@ -118,9 +119,9 @@ function render(template, context, config)
           return i, ctx(text, context, config)
         end
 
-        assert(type(ctx) == 'table',
-          'expected a table from '..tostring(section.tag).. ', not a '
-          ..type(ctx)..': '..tostring(ctx))
+        if type(ctx) ~= 'table' then -- only the truth matters
+          return i, render(text, context, config)
+        end
 
         if islist(ctx) then
           if #ctx == 0 then -- empty list, nothing to do
@@ -133,10 +134,11 @@ function render(template, context, config)
             results[#results + 1] = render(text, subctx, config)
           end
 
-          return i, table_concat(results, '\n')
+          -- use the spaces 
+          return i, table_concat(results, section.finalspaces)
         end
 
-        -- ctx is a hash table
+        -- ctx is a hash table, use it as the new context
         return i, render(text, ctx, config)
       end,
       invertedSection = function (s, i, section)
