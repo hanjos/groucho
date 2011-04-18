@@ -23,6 +23,19 @@ local config_defaults = {
   __index = { template_path = '.', template_extension = 'mustache' } 
 }
 
+--- Makes sure the given function is run in a section.
+-- The state holds this information with the insection field, which should be
+-- true when section-rendering code is being run, and false otherwise.
+--
+-- Parameters:
+-- * state <table>: holds the shared state.
+-- * func <any... -> any...>: the block of code to run.
+--
+-- Returns:
+-- * <any... -> any...>: a function which takes the same parameters and
+--     returns the same values as func, but sets state.insection to true
+--     before executing func and false afterwards, but before returning for
+--     good.
 local function runInSection(state, func)
   return function (...)
     state.insection = true
@@ -32,6 +45,47 @@ local function runInSection(state, func)
     state.insection = false
     return unpack(results)
   end
+end
+
+--- Resolves the given variable name in the given context.
+-- Dotted names are considered a form of shorthand for sections, so 'a.b.c' is
+-- interpreted as 'return the value of c in the context defined by b which is
+-- in the context defined by a'. Any mismatch during the walking process will
+-- return nil.
+--
+-- Parameters:
+-- * context <table>: the initial context for variable lookup.
+-- * var <string>: the variable name, or a dotted name holding the variable's
+--     location.
+--
+-- Returns:
+-- * <any> nil if var could not be resolved against context, the value found
+--     otherwise.
+local function resolve(context, var)
+  local path = split(var, '.')
+
+  if #path == 0 then
+    return nil
+  elseif #path == 1 then
+    return context[var]
+  end
+
+  -- iterate until the next to last name, since all of these names must
+  -- resolve to hash tables
+  local currentctx = context
+  for i = 1, #path - 1 do
+    local newctx = currentctx[ path[i] ]
+
+    if newctx == nil
+    or type(newctx) ~= 'table'
+    or islist(newctx) then -- lookup fail, nothing found
+      return nil
+    end
+
+    currentctx = newctx
+  end
+
+  return currentctx[path[#path]]
 end
 
 --[[ exports ]]
@@ -55,7 +109,7 @@ end
 -- * var <string -> string>: renders normal variables.
 -- * atlinestart <(string, integer) -> (integer | boolean)>: an LPeg
 --     function pattern to check if the index is at the beginning of the
---     template or of a line. The util module has a suitable implementation.
+--     template or of a line. 
 grammar = [[
   Start     <- {~ Template ~} !.
   Template  <- (String (Hole String)*)
@@ -93,65 +147,27 @@ grammar = [[
   Name  <- (!(%s* '}}') .)*
 ]]
 
---- Resolves the given variable name in the given context.
--- Dotted names are considered a form of shorthand for sections, so 'a.b.c' is
--- interpreted as 'return the value of c in the context defined by b which is
--- in the context defined by a'. Any mismatch during the walking process will
--- return nil.
---
--- Parameters:
--- * context <table>: the initial context for variable lookup.
--- * var <string>: the variable name, or a dotted name holding the variable's
---     location.
---
--- Returns:
--- * <any> nil if var could not be resolved against context, the value found
---     otherwise.
-function resolve(context, var)
-  local path = split(var, '.')
-
-  if #path == 0 then
-    return nil
-  elseif #path == 1 then
-    return context[var]
-  end
-
-  -- iterate until the next to last name, since all of these names must
-  -- resolve to hash tables
-  local currentctx = context
-  for i = 1, #path - 1 do
-    local newctx = currentctx[ path[i] ]
-
-    if newctx == nil
-    or type(newctx) ~= 'table'
-    or islist(newctx) then -- lookup fail, nothing found
-      return nil
-    end
-
-    currentctx = newctx
-  end
-
-  return currentctx[path[#path]]
-end
-
 --- Returns a rendered string with all tags populated with the given context.
 --
 -- Parameters:
 -- * template <string>: a template.
 -- * context  <table>: a table holding the values for replacement.
 -- * config   <table, optional>: a table holding some configurations.
---     There are two:
+--     The known configurations are:
 -- ** template_path <string | nil>: the relative path where template files will
 --         be searched. Defaults to '.'.
 -- ** template_extension <string | nil>: the extension of the template files.
 --         Defaults to 'mustache'. If set to nil or '', the files have no
 --         extension.
+-- * state    <table, optional>: a table holding state shared between capture
+--     functions. The known fields are:
+-- ** insection <boolean>: if the code is being run while processing a section.
 --
 -- Returns:
 -- * <string> a rendered version of the template.
 function render(template, context, config, state)
   config = setmetatable(config or {}, config_defaults)
-  state = state or {}
+  state = state or { insection = false }
 
   local patt = re.compile(grammar,
     { atlinestart = function (s, i) return not state.insection and atlinestart(s, i) end,
