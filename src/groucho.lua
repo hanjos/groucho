@@ -92,6 +92,22 @@ local function resolve(context, var)
   return currentctx[path[#path]]
 end
 
+local function findpartialfile(filename, config)
+  local path, ext = config.template_path, empty_on_nil(config.template_extension)
+  local location = path..'/'..filename..(#ext > 0 and '.'..ext or '')
+
+  return assert(io_open(location, 'r'))
+end
+
+local function addindentation(text, indentation)
+  if not indentation or indentation == '' then
+    return text
+  end
+
+  local lastchar = text:sub(-1)
+  return indentation..text:sub(1, -2):gsub('\n', '\n'..indentation)..lastchar
+end
+
 --[[ exports ]]
 --- The PEG which matches mustache templates and does the basic captures.
 -- Some hooks are left to be populated later with the given context and
@@ -141,7 +157,9 @@ grammar = [[
     StandaloneOpenInvertedSection <- %atlinestart (!%nl %s)* OpenInvertedSection (!%nl %s)* %nl
     StandaloneCloseSection        <- %atlinestart (!%nl %s)* CloseSection        (!%nl %s)* (%nl / !.)
     StandaloneCloseSectionWithTag <- %atlinestart (!%nl %s)* CloseSectionWithTag (!%nl %s)* (%nl / !.)
-  Partial         <- ('{{>' %s* { Name } %s* '}}') -> partial
+  Partial         <- (StandalonePartial / InlinePartial) -> {} -> partial
+    StandalonePartial <- %atlinestart {:indentation: (!%nl %s)* :} InlinePartial (!%nl %s)* (%nl / !.)
+    InlinePartial     <- '{{>' %s* { Name } %s* '}}'
   Comment         <- (StandaloneComment / InlineComment) -> comment
     StandaloneComment <- %atlinestart (!%nl %s)* InlineComment (!%nl %s)* (%nl / !.)
     InlineComment     <- '{{!' (!'}}' .)* '}}'
@@ -199,12 +217,12 @@ function render(template, context, config, state)
           return ''
         end
 
-        -- load the {{partial}} mustache file
-        local path, ext = config.template_path, empty_on_nil(config.template_extension)
-        local location = path..'/'..partial..(#ext > 0 and '.'..ext or '')
-        
-        local text = assert(io_open(location, 'r')):read '*a'
-        
+        local text = findpartialfile(partial[1], config):read '*a'
+
+        -- putting any indentation that may exist,
+        -- except for the newline just before EOF
+        text = addindentation(text, partial.indentation or '')
+
         -- include it and evaluate it here
         return render(text, context, config, state)
       end,
