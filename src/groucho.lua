@@ -6,8 +6,8 @@ local table_remove, table_concat, io_open =
   table.remove, table.concat, io.open
 local empty_on_nil, islist, escapehtml, atlinestart, split =
   util.empty_on_nil, util.islist, util.escapehtml, util.atlinestart, util.split
-local assert, ipairs, setmetatable, tostring, type, unpack =
-  assert, ipairs, setmetatable, tostring, type, unpack
+local assert, error, ipairs, setmetatable, tostring, type, unpack =
+  assert, error, ipairs, setmetatable, tostring, type, unpack
 
 local print = print
 
@@ -62,6 +62,10 @@ end
 -- * <any> nil if var could not be resolved against context, the value found
 --     otherwise.
 local function resolve(context, var)
+  if var == '.' then
+    return context['.']
+  end
+
   local path = split(var, '.')
 
   if #path == 0 then
@@ -118,7 +122,7 @@ grammar = [[
   Hole      <- Section / InvertedSection / Partial / Comment
             / UnescapedVar / Var
   Section   <- (
-      {:tag: OpenSection :}
+      {:tag: StandaloneOpenSection / OpenSection :}
       {:textstart: {} :}
       Template
       {:textfinish: {} :}
@@ -229,15 +233,33 @@ function render(template, context, config, state)
             -- render text for each subcontext and accumulate the results
             local results = {}
             for _, subctx in ipairs(ctx) do
-              results[#results + 1] = render(text, subctx, config, state)
+              local newctx
+              if type(subctx) == 'table' then
+                newctx = setmetatable(subctx, { __index = context })
+              elseif type(subctx) == 'string' or type(subctx) == 'number' then
+                newctx = setmetatable(
+                  { ['.'] = tostring(subctx) }, -- create the magic . variable
+                  { __index = context })
+              else
+                error('Invalid type for context: '..type(subctx)..'!')
+              end
+
+
+              results[#results + 1] = render(text, newctx, config, state)
             end
 
             -- use the spaces
             return i, table_concat(results, section.finalspaces or '')
           end
 
-          -- ctx is a hash table, use it as the new context
-          return i, render(text, ctx, config, state)
+          -- ctx is a hash table, use it as the new context, which can also
+          -- access variables defined in context
+          return
+            i,
+            render(text,
+              setmetatable(ctx, { __index = context }),
+              config,
+              state)
         end),
       invertedSection = runInSection(state, function (s, i, section)
         local ctx = resolve(context, section.tag)
