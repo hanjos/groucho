@@ -20,7 +20,7 @@ module 'groucho'
 --[[ helper code ]]
 --- The metatable for configuration tables with its default values.
 local config_defaults = {
-  __index = { template_path = '.', template_extension = 'mustache' } 
+  __index = { template_path = '.', template_extension = 'mustache' }
 }
 
 --- Makes sure the given function is run in a section.
@@ -108,6 +108,12 @@ local function addindentation(text, indentation)
   return indentation..text:sub(1, -2):gsub('\n', '\n'..indentation)..lastchar
 end
 
+local function processpartial(filename, indentation, config)
+  local text = findpartialfile(filename, config):read '*a'
+
+  return addindentation(text, indentation)
+end
+
 --[[ exports ]]
 --- The PEG which matches mustache templates and does the basic captures.
 -- Some hooks are left to be populated later with the given context and
@@ -129,24 +135,27 @@ end
 -- * var <string -> string>: renders normal variables.
 -- * atlinestart <(string, integer) -> (integer | boolean)>: an LPeg
 --     function pattern to check if the index is at the beginning of the
---     template or of a line. 
+--     template or of a line.
 grammar = [[
   Start     <- {~ Template ~} !.
   Template  <- (String (Hole String)*)
-  String    <- (!Hole !OpenSection !OpenInvertedSection !CloseSection
+  Body      <- (String (InnerHole String)*)
+  String    <- (!Hole !InnerPartial !OpenSection !OpenInvertedSection !CloseSection
       !StandaloneOpenSection !StandaloneOpenInvertedSection !StandaloneCloseSection .)*
   Hole      <- Section / InvertedSection / Partial / Comment
+            / UnescapedVar / Var
+  InnerHole <- Section / InvertedSection / InnerPartial / Comment
             / UnescapedVar / Var
   Section   <- (
       {:tag: StandaloneOpenSection / OpenSection :}
       {:textstart: {} :}
-      Template
+      Body
       {:textfinish: {} :}
       (StandaloneCloseSectionWithTag / ({:finalspaces: %s* :} CloseSectionWithTag))) -> {} => section
   InvertedSection <- (
       {:tag: StandaloneOpenInvertedSection / OpenInvertedSection :}
       {:textstart: {} :}
-      {~ Template ~}
+      Body
       {:textfinish: {} :}
       (StandaloneCloseSectionWithTag / ({:finalspaces: %s* :} CloseSectionWithTag))) -> {} => invertedSection
     OpenSection         <- '{{#' %s* { Name } %s* '}}'
@@ -160,6 +169,7 @@ grammar = [[
   Partial         <- (StandalonePartial / InlinePartial) -> {} -> partial
     StandalonePartial <- %atlinestart {:indentation: (!%nl %s)* :} InlinePartial (!%nl %s)* (%nl / !.)
     InlinePartial     <- '{{>' %s* { Name } %s* '}}'
+  InnerPartial    <- (StandalonePartial / InlinePartial) -> {} -> innerPartial
   Comment         <- (StandaloneComment / InlineComment) -> comment
     StandaloneComment <- %atlinestart (!%nl %s)* InlineComment (!%nl %s)* (%nl / !.)
     InlineComment     <- '{{!' (!'}}' .)* '}}'
@@ -217,14 +227,26 @@ function render(template, context, config, state)
           return ''
         end
 
-        local text = findpartialfile(partial[1], config):read '*a'
-
-        -- putting any indentation that may exist,
-        -- except for the newline just before EOF
-        text = addindentation(text, partial.indentation or '')
+        local text = processpartial(partial[1], partial.indentation or '', config)
 
         -- include it and evaluate it here
         return render(text, context, config, state)
+      end,
+      innerPartial = function (partial)
+        if not config.template_path then -- file not found
+          return ''
+        end
+
+        local name, indentation = partial[1], partial.indentation or ''
+        local text = processpartial(name, indentation, config)
+
+        -- HACK: substitute this partial to an unescaped variable with a
+        -- similar known name, and map this variable to a function which
+        -- will return the partial's text. It will be called later when
+        -- section is resolved.
+        context['partial: '..name] = function () return text end
+
+        return '{{{ partial: '..name..' }}}'
       end,
       section = runInSection(state, function (s, i, section)
           local ctx = resolve(context, section.tag)

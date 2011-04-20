@@ -181,6 +181,29 @@ context('Interpolation', function ()
 
         assert_equal(groucho.render(template, data), expected)
       end)
+
+    it('Non-Letter Characters in the Name', function ()
+      local template = [[
+        * {{name?}}
+        * {{age!}}
+        * {{123company_in_bold}}
+        * {{& =1+2}}]]
+
+      local expected = [[
+        * Chris
+        * 29
+        * &lt;b&gt;GitHub&lt;/b&gt;
+        * <b>GitHub</b>]]
+
+      local data = {
+        ['name?'] = "Chris",
+        ['age!'] = "29",
+        ['123company_in_bold'] = "<b>GitHub</b>",
+        ['=1+2'] = "<b>GitHub</b>",
+      }
+
+      assert_equal(groucho.render(template, data), expected)
+    end)
   end)
 
   context('Context Miss', function ()
@@ -505,29 +528,6 @@ context('Interpolation', function ()
         ['2'] = "29",
         [2] = "40, but gosh doesn't she look like she's 29?",
         [3] = "Help! I'm invisible!",
-      }
-
-      assert_equal(groucho.render(template, data), expected)
-    end)
-
-    it('Variables with Non-Letter Characters in the Name', function ()
-      local template = [[
-        * {{name?}}
-        * {{age!}}
-        * {{123company_in_bold}}
-        * {{& =1+2}}]]
-
-      local expected = [[
-        * Chris
-        * 29
-        * &lt;b&gt;GitHub&lt;/b&gt;
-        * <b>GitHub</b>]]
-
-      local data = {
-        ['name?'] = "Chris",
-        ['age!'] = "29",
-        ['123company_in_bold'] = "<b>GitHub</b>",
-        ['=1+2'] = "<b>GitHub</b>",
       }
 
       assert_equal(groucho.render(template, data), expected)

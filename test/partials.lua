@@ -48,7 +48,7 @@ context('Partials', function ()
       template: '{{>node}}'
       partials: { node: '{{content}}<{{#nodes}}{{>node}}{{/nodes}}>' }
       expected: 'X<Y<>>'
-    --]=
+    --]=]
     it('Recursion', function ()
       local template = '{{>recursion}}'
       local expected = 'X<Y<>>'
@@ -57,7 +57,6 @@ context('Partials', function ()
 
       assert_equal(groucho.render(template, data, config), expected)
     end)
-    --]=]
   end)
 
   context('Whitespace Sensitivity', function ()
