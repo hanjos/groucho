@@ -4,8 +4,8 @@ local util = require 'util'
 
 local table_remove, table_concat, io_open =
   table.remove, table.concat, io.open
-local empty_on_nil, islist, escapehtml, atlinestart, split =
-  util.empty_on_nil, util.islist, util.escapehtml, util.atlinestart, util.split
+local emptyifnil, islist, escapehtml, atlinestart, split =
+  util.emptyifnil, util.islist, util.escapehtml, util.atlinestart, util.split
 local assert, error, ipairs, setmetatable, tostring, type, unpack =
   assert, error, ipairs, setmetatable, tostring, type, unpack
 
@@ -24,7 +24,7 @@ local config_defaults = {
 }
 
 --- Makes sure the given function is run in a section.
--- The state holds this information with the insection field, which should be
+-- The state holds this information with the inSection field, which should be
 -- true when section-rendering code is being run, and false otherwise.
 --
 -- Parameters:
@@ -33,24 +33,24 @@ local config_defaults = {
 --
 -- Returns:
 -- * <any... -> any...>: a function which takes the same parameters and
---     returns the same values as func, but sets state.insection to true
+--     returns the same values as func, but sets state.inSection to true
 --     before executing func and false afterwards, but before returning for
 --     good.
-local function runInSection(state, func)
+local function inSection(state, func)
   return function (...)
-    state.insection = true
+    state.inSection = true
 
     local results = { func(...) }
 
-    state.insection = false
+    state.inSection = false
     return unpack(results)
   end
 end
 
 --- Resolves the given variable name in the given context.
--- Dotted names are considered a form of shorthand for sections, so 'a.b.c' is
--- interpreted as 'return the value of c in the context defined by b which is
--- in the context defined by a'. Any mismatch during the walking process will
+-- Dotted names are considered a form of shorthand for sections, so "a.b.c" is
+-- interpreted as "return the value of c in the context defined by b which is
+-- in the context defined by a". Any mismatch during the walking process will
 -- return nil.
 --
 -- Parameters:
@@ -62,6 +62,7 @@ end
 -- * <any> nil if var could not be resolved against context, the value found
 --     otherwise.
 local function resolve(context, var)
+  -- check for the internal iterator . first
   if var == '.' then
     return context['.']
   end
@@ -92,13 +93,38 @@ local function resolve(context, var)
   return currentctx[path[#path]]
 end
 
+--- Searches for the file in the given path and with the given extension.
+--
+-- Parameters:
+-- * filename <string>: the name of the file.
+-- * config   <table>: a table holding some configuration options.
+--     The known configurations are:
+-- ** template_path <string>: the relative path where template
+--     files will be searched.
+-- ** template_extension <string (optional)>: the extension of the template
+--     files. If set to nil or '', the files have no extension.
+--
+-- Returns:
+-- * <file>: a read-only open file handle to the partial file.
+--
+-- Panics:
+-- * the file does not exist.
+-- * the file exists, but could not be opened for reading.
 local function findpartialfile(filename, config)
-  local path, ext = config.template_path, empty_on_nil(config.template_extension)
+  local path, ext = config.template_path, emptyifnil(config.template_extension)
   local location = path..'/'..filename..(#ext > 0 and '.'..ext or '')
 
   return assert(io_open(location, 'r'))
 end
 
+--- Indents all lines in the given text with the given indentation.
+--
+-- Parameters:
+-- * text <string>: an amount of text.
+-- * indentation <string>: the indentation to be added to every line.
+--
+-- Returns:
+-- * <string>: text, with all its lines indented.
 local function addindentation(text, indentation)
   if not indentation or indentation == '' then
     return text
@@ -108,9 +134,25 @@ local function addindentation(text, indentation)
   return indentation..text:sub(1, -2):gsub('\n', '\n'..indentation)..lastchar
 end
 
+--- Finds the given partial file and returns its text after indentation.
+--
+-- Parameters:
+-- * filename <string>: the name of the file.
+-- * indentation <string>: the indentation to be added to every line of the
+--     file's text.
+-- * config <table>: a table holding some configuration options, as described
+--     in [[findpartialfile]]'s documentation.
+--
+-- Returns:
+-- * <string>: the partial file's text, with all its lines indented.
+--
+-- Panics:
+-- * for the same reasons findpartialfile panics.
 local function processpartial(filename, indentation, config)
-  local text = findpartialfile(filename, config):read '*a'
-
+  local file = findpartialfile(filename, config)
+    local text = file:read '*a'
+  file:close()
+  
   return addindentation(text, indentation)
 end
 
@@ -121,11 +163,13 @@ end
 -- * section <(string, integer, table) -> string>: a match-time capture which
 --     will return the section fully rendered. The captured table holds some
 --     fields to aid rendering:
---     ** tag <string>: the string to be looked up in the context.
---     ** textstart <integer>: the position in the full text where the section
---         starts.
---     ** textfinish <integer>: the position in the full text directly after
---         the section end.
+-- ** tag <string>: the string to be looked up in the context.
+-- ** textstart <integer>: the position in the full text where the section
+--     starts.
+-- ** textfinish <integer>: the position in the full text directly after the
+--     section end.
+-- ** finalspaces <string (optional)>: the spaces just before the closing tag.
+--     Exists only if the closing tag is not standalone.
 -- * invertedSection <(string, integer, table) -> string>: a match-time capture
 --     just like section, but applied to inverted sections.
 -- * partial <string -> string>: renders partial captures, receiving the
@@ -184,42 +228,48 @@ grammar = [[
 -- Parameters:
 -- * template <string>: a template.
 -- * context  <table>: a table holding the values for replacement.
--- * config   <table, optional>: a table holding some configurations.
+-- * config   <table (optional)>: a table holding some configuration options.
 --     The known configurations are:
--- ** template_path <string | nil>: the relative path where template files will
---         be searched. Defaults to '.'.
--- ** template_extension <string | nil>: the extension of the template files.
---         Defaults to 'mustache'. If set to nil or '', the files have no
---         extension.
--- * state    <table, optional>: a table holding state shared between capture
+-- ** template_path <string (optional)>: the relative path where template
+--     files will be searched. Defaults to '.'.
+-- ** template_extension <string (optional)>: the extension of the template
+--     files. Defaults to 'mustache'. If set to nil or '', the files have no
+--     extension.
+-- * state    <table (optional)>: a table holding state shared between capture
 --     functions. The known fields are:
--- ** insection <boolean>: if the code is being run while processing a section.
+-- ** inSection <boolean>: if the code is being run while processing a section.
 --
 -- Returns:
 -- * <string> a rendered version of the template.
+--
+-- Panics:
+-- * the partial file does not exist.
+-- * the partial file exists, but could not be opened for reading.
+-- * a section resolves to a list which has elements that are neither a table,
+--     a string, a boolean nor a number.
 function render(template, context, config, state)
   config = setmetatable(config or {}, config_defaults)
-  state = state or { insection = false }
+  state = state or { inSection = false }
 
   local patt = re.compile(grammar,
-    { atlinestart = function (s, i) return not state.insection and atlinestart(s, i) end,
+    { atlinestart = function (s, i) return not state.inSection and atlinestart(s, i) end,
       unescapedVar = function (var)
         local resolvedvar = resolve(context, var)
 
         if type(resolvedvar) == 'function' then
-          return empty_on_nil(render(resolvedvar(), context, config, state))
+          return emptyifnil(render(resolvedvar(), context, config, state))
         end
 
-        return empty_on_nil(resolvedvar)
+        return emptyifnil(resolvedvar)
       end,
       var = function (var)
         local resolvedvar = resolve(context, var)
 
         if type(resolvedvar) == 'function' then
-          return escapehtml(empty_on_nil(render(resolvedvar(), context, config, state)))
+          return escapehtml(emptyifnil(render(resolvedvar(), context, config, state)))
         end
 
-        return escapehtml(empty_on_nil(resolvedvar))
+        return escapehtml(emptyifnil(resolvedvar))
       end,
       comment = function (comment) return '' end,
       partial = function (partial)
@@ -248,7 +298,7 @@ function render(template, context, config, state)
 
         return '{{{ partial: '..name..' }}}'
       end,
-      section = runInSection(state, function (s, i, section)
+      section = inSection(state, function (s, i, section)
           local ctx = resolve(context, section.tag)
 
           if not ctx then -- undefined value, nothing to do
@@ -272,16 +322,20 @@ function render(template, context, config, state)
 
             -- render text for each subcontext and accumulate the results
             local results = {}
-            for _, subctx in ipairs(ctx) do
+            for index, subctx in ipairs(ctx) do
+              local typectx = type(subctx)
               local newctx
-              if type(subctx) == 'table' then
+              if typectx == 'table' then
                 newctx = setmetatable(subctx, { __index = context })
-              elseif type(subctx) == 'string' or type(subctx) == 'number' then
+              elseif typectx == 'string'
+                  or typectx == 'number'
+                  or typectx == 'boolean' then
                 newctx = setmetatable(
                   { ['.'] = tostring(subctx) }, -- create the magic . variable
                   { __index = context })
               else
-                error('Invalid type for context: '..type(subctx)..'!')
+                error('The context in section '..section.tag..' at index '
+                  ..index..' has an invalid type ('..typectx..')!')
               end
 
 
@@ -301,14 +355,14 @@ function render(template, context, config, state)
               config,
               state)
         end),
-      invertedSection = runInSection(state, function (s, i, section)
+      invertedSection = inSection(state, function (s, i, section)
         local ctx = resolve(context, section.tag)
         if ctx and (not islist(ctx) or #ctx > 0) then -- it's defined, nothing to do
           return i, ''
         end
 
-        -- just spit out the text
-        local finalspaces = empty_on_nil(section.finalspaces)
+        -- render the inner text
+        local finalspaces = emptyifnil(section.finalspaces)
         local text = s:sub(section.textstart, (section.textfinish + #finalspaces) - 1)
 
         return i, render(text, context, config, state)

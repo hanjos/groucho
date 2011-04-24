@@ -16,7 +16,7 @@ module 'util'
 --
 -- Returns:
 -- * <string>: the empty string if v is nil, v stringified otherwise.
-function empty_on_nil(v)
+function emptyifnil(v)
   return v ~= nil and tostring(v) or ''
 end
 
