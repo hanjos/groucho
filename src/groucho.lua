@@ -4,8 +4,8 @@ local util = require 'util'
 
 local table_remove, table_concat, io_open =
   table.remove, table.concat, io.open
-local emptyifnil, islist, escapehtml, atlinestart, split, pack =
-  util.emptyifnil, util.islist, util.escapehtml, util.atlinestart, util.split,
+local blankifnil, islist, escapehtml, atlinestart, split, pack =
+  util.blankifnil, util.islist, util.escapehtml, util.atlinestart, util.split,
   util.pack
 local assert, error, ipairs, setmetatable, tostring, type, unpack =
   assert, error, ipairs, setmetatable, tostring, type, unpack
@@ -30,7 +30,7 @@ local config_defaults = {
 --
 -- Parameters:
 -- * state <table>: holds the shared state.
--- * func <any... -> any...>: the block of code to run.
+-- * func  <any... -> any...>: the block of code to run.
 --
 -- Returns:
 -- * <any... -> any...>: a function which takes the same parameters and
@@ -56,8 +56,8 @@ end
 --
 -- Parameters:
 -- * context <table>: the initial context for variable lookup.
--- * var <string>: the variable name, or a dotted name holding the variable's
---     location.
+-- * var     <string>: the variable name, or a dotted name holding the
+--     variable's location.
 --
 -- Returns:
 -- * <any> nil if var could not be resolved against context, the value found
@@ -100,10 +100,11 @@ end
 -- * filename <string>: the name of the file.
 -- * config   <table>: a table holding some configuration options.
 --     The known configurations are:
--- ** template_path <string>: the relative path where template
+-- ** template_path      <string>: the relative path where template
 --     files will be searched.
--- ** template_extension <string (optional)>: the extension of the template
---     files. If set to nil or '', the files have no extension.
+-- ** template_extension <any (optional)>: the extension of the template
+--     files. If it's nil or the empty string, the files have no extension.
+--     If set to a non-string value, its string representation will be used.
 --
 -- Returns:
 -- * <file>: a read-only open file handle to the partial file.
@@ -112,7 +113,7 @@ end
 -- * the file does not exist.
 -- * the file exists, but could not be opened for reading.
 local function findpartialfile(filename, config)
-  local path, ext = config.template_path, emptyifnil(config.template_extension)
+  local path, ext = config.template_path, blankifnil(config.template_extension)
   local location = path..'/'..filename..(#ext > 0 and '.'..ext or '')
 
   return assert(io_open(location, 'r'))
@@ -121,7 +122,7 @@ end
 --- Indents all lines in the given text with the given indentation.
 --
 -- Parameters:
--- * text <string>: an amount of text.
+-- * text        <string>: some text.
 -- * indentation <string>: the indentation to be added to every line.
 --
 -- Returns:
@@ -138,11 +139,11 @@ end
 --- Finds the given partial file and returns its text after indentation.
 --
 -- Parameters:
--- * filename <string>: the name of the file.
+-- * filename    <string>: the name of the file.
 -- * indentation <string>: the indentation to be added to every line of the
 --     file's text.
--- * config <table>: a table holding some configuration options, as described
---     in [[findpartialfile]]'s documentation.
+-- * config      <table>: a table holding some configuration options, as
+--     described in [[findpartialfile]]'s documentation.
 --
 -- Returns:
 -- * <string>: the partial file's text, with all its lines indented.
@@ -164,24 +165,25 @@ end
 -- * section <(string, integer, table) -> string>: a match-time capture which
 --     will return the section fully rendered. The captured table holds some
 --     fields to aid rendering:
--- ** tag <string>: the string to be looked up in the context.
--- ** textstart <integer>: the position in the full text where the section
+-- ** tag         <string>: the string to be looked up in the context.
+-- ** textstart   <integer>: the position in the full text where the section
 --     starts.
--- ** textfinish <integer>: the position in the full text directly after the
+-- ** textfinish  <integer>: the position in the full text directly after the
 --     section end.
 -- ** finalspaces <string (optional)>: the spaces just before the closing tag.
 --     Exists only if the closing tag is not standalone.
 -- * invertedSection <(string, integer, table) -> string>: a match-time capture
 --     just like section, but applied to inverted sections.
--- * partial <table -> string>: renders partial captures, receiving a table with:
--- ** 1 <string>: the name of template to search for.
+-- * partial         <table -> string>: renders partial captures, receiving a
+--     table with the following fields:
+-- ** 1           <string>: the name of template to search for.
 -- ** indentation <string (optional)>: the indentation in a standalone partial.
--- * comment <string -> string>: renders comments.
+-- * comment      <string -> string>: renders comments.
 -- * unescapedVar <string -> string>: renders unescaped variables.
--- * var <string -> string>: renders normal variables.
--- * atlinestart <(string, integer) -> (integer | boolean)>: an LPeg
---     function pattern to check if the index is at the beginning of the
---     template or of a line.
+-- * var          <string -> string>: renders normal variables.
+-- * atlinestart  <(string, integer) -> (integer | boolean)>: an LPeg function
+--     pattern to check if the index is at the beginning of the template or of
+--     a line.
 grammar = [[
   Start     <- {~ Template ~} !.
   Template  <- (String (Hole String)*)
@@ -232,12 +234,12 @@ grammar = [[
 -- * context  <table>: a table holding the values for replacement.
 -- * config   <table (optional)>: a table holding some configuration options.
 --     The known configurations are:
--- ** template_path <string (optional)>: the relative path where template
+-- ** template_path      <string (optional)>: the relative path where template
 --     files will be searched. Defaults to '.'.
 -- ** template_extension <string (optional)>: the extension of the template
 --     files. Defaults to 'mustache'. If set to nil or '', the files have no
 --     extension.
--- * state    <table (optional)>: a table holding state shared between capture
+-- * state <table (optional)>: a table holding state shared between capture
 --     functions. The known fields are:
 -- ** inSection <boolean>: if the code is being run while processing a section.
 --
@@ -259,19 +261,19 @@ function render(template, context, config, state)
         local resolvedvar = resolve(context, var)
 
         if type(resolvedvar) == 'function' then
-          return emptyifnil(render(resolvedvar(), context, config, state))
+          return blankifnil(render(resolvedvar(), context, config, state))
         end
 
-        return emptyifnil(resolvedvar)
+        return blankifnil(resolvedvar)
       end,
       var = function (var)
         local resolvedvar = resolve(context, var)
 
         if type(resolvedvar) == 'function' then
-          return escapehtml(emptyifnil(render(resolvedvar(), context, config, state)))
+          return escapehtml(blankifnil(render(resolvedvar(), context, config, state)))
         end
 
-        return escapehtml(emptyifnil(resolvedvar))
+        return escapehtml(blankifnil(resolvedvar))
       end,
       comment = function (comment) return '' end,
       partial = function (partial)
@@ -364,7 +366,7 @@ function render(template, context, config, state)
         end
 
         -- render the inner text
-        local finalspaces = emptyifnil(section.finalspaces)
+        local finalspaces = blankifnil(section.finalspaces)
         local text = s:sub(section.textstart, (section.textfinish + #finalspaces) - 1)
 
         return i, render(text, context, config, state)
