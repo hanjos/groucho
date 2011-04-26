@@ -4,8 +4,9 @@ local util = require 'util'
 
 local table_remove, table_concat, io_open =
   table.remove, table.concat, io.open
-local emptyifnil, islist, escapehtml, atlinestart, split =
-  util.emptyifnil, util.islist, util.escapehtml, util.atlinestart, util.split
+local emptyifnil, islist, escapehtml, atlinestart, split, pack =
+  util.emptyifnil, util.islist, util.escapehtml, util.atlinestart, util.split,
+  util.pack
 local assert, error, ipairs, setmetatable, tostring, type, unpack =
   assert, error, ipairs, setmetatable, tostring, type, unpack
 
@@ -40,10 +41,10 @@ local function inSection(state, func)
   return function (...)
     state.inSection = true
 
-    local results = { func(...) }
+    local results, n = pack(func(...))
 
     state.inSection = false
-    return unpack(results)
+    return unpack(results, 1, n)
   end
 end
 
@@ -172,8 +173,9 @@ end
 --     Exists only if the closing tag is not standalone.
 -- * invertedSection <(string, integer, table) -> string>: a match-time capture
 --     just like section, but applied to inverted sections.
--- * partial <string -> string>: renders partial captures, receiving the
---     template to search for.
+-- * partial <table -> string>: renders partial captures, receiving a table with:
+-- ** 1 <string>: the name of template to search for.
+-- ** indentation <string (optional)>: the indentation in a standalone partial.
 -- * comment <string -> string>: renders comments.
 -- * unescapedVar <string -> string>: renders unescaped variables.
 -- * var <string -> string>: renders normal variables.

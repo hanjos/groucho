@@ -4,6 +4,10 @@ require 'telescope'
 require 'util'
 
 context('Util', function ()
+  context('pack', function ()
+    it('should work :)', function () end)
+  end)
+
   context('emptyifnil', function ()
     it('should return the same string it was given', function ()
       local template = '==> sbrubbles <=='

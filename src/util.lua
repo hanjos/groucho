@@ -1,5 +1,6 @@
 --[[ imports and aliases ]]
-local ipairs, pairs, tostring, type = ipairs, pairs, tostring, type 
+local ipairs, pairs, select, tostring, type =
+  ipairs, pairs, select, tostring, type
 
 local lpeg = require 'lpeg'
 local re = require 're'
@@ -8,6 +9,18 @@ local re = require 're'
 --
 -- @author Humberto Anjos
 module 'util'
+
+--- Packs the arguments in a table.
+--
+-- Parameters:
+-- * ... <any...>: the values to pack.
+--
+-- Returns:
+-- * <table>: a table holding the values in ... .
+-- * <integer>: the amount of values given.
+function pack(...)
+  return { ... }, select('#', ...)
+end
 
 --- Converts v to a string (the empty string if v is nil).
 --
