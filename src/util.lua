@@ -29,7 +29,7 @@ end
 --
 -- Returns:
 -- * <string>: the empty string if v is nil, v stringified otherwise.
-function emptyifnil(v)
+function blankifnil(v)
   return v ~= nil and tostring(v) or ''
 end
 
@@ -68,7 +68,7 @@ function escapehtml(v)
           :gsub('"', '&quot;'):gsub('<', '&lt;'):gsub('>', '&gt;')
 end
 
--- Pattern to detect linebreaks.
+-- Pattern to detect line breaks.
 local NL = re.compile '%nl'
 
 --- Detects if the index is at the beginning of the string or of a line.

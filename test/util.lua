@@ -4,37 +4,33 @@ require 'telescope'
 require 'util'
 
 context('Util', function ()
-  context('pack', function ()
-    it('should work :)', function () end)
-  end)
-
-  context('emptyifnil', function ()
+  context('blankifnil', function ()
     it('should return the same string it was given', function ()
       local template = '==> sbrubbles <=='
       local expected = template
 
-      assert_equal(util.emptyifnil(template), expected)
+      assert_equal(util.blankifnil(template), expected)
     end)
 
     it('should return a stringified version of a non-nil non-string', function ()
       local template = 234567
       local expected = '234567'
 
-      assert_equal(util.emptyifnil(template), expected)
+      assert_equal(util.blankifnil(template), expected)
     end)
 
     it('should return "false" when given the boolean false', function ()
       local template = false
       local expected = 'false'
 
-      assert_equal(util.emptyifnil(template), expected)
+      assert_equal(util.blankifnil(template), expected)
     end)
 
     it('should return the empty string when given nil', function ()
       local template = nil
       local expected = ''
 
-      assert_equal(util.emptyifnil(template), expected)
+      assert_equal(util.blankifnil(template), expected)
     end)
   end)
 
@@ -146,6 +142,10 @@ context('Util', function ()
   end)
 
   context('split', function ()
+    it('should work :)', function () end)
+  end)
+
+  context('pack', function ()
     it('should work :)', function () end)
   end)
 end)

@@ -194,4 +194,42 @@ context('Partials', function ()
       assert_equal(groucho.render(template, data, config), expected)
     end)
   end)
+
+  context('Template Configurations', function ()
+    it('Specific Extension', function ()
+      local template = '"{{>basic-behavior}}"'
+      local expected = '"from sbrubbles"'
+      local data = {}
+      local config = { template_path = 'fixtures', template_extension = 'sbrubbles' }
+
+      assert_equal(groucho.render(template, data, config), expected)
+    end)
+
+    it('Blank Extension', function ()
+      local template = '"{{>basic-behavior}}"'
+      local expected = '"from extensionless"'
+      local data = {}
+      local config = { template_path = 'fixtures', template_extension = '' }
+
+      assert_equal(groucho.render(template, data, config), expected)
+    end)
+
+    it('Nil Extension', function ()
+      local template = '"{{>basic-behavior}}"'
+      local expected = '"from partial"'
+      local data = {}
+      local config = { template_path = 'fixtures', template_extension = nil }
+
+      assert_equal(groucho.render(template, data, config), expected)
+    end)
+
+    it('Non-String Extension', function ()
+      local template = '"{{>basic-behavior}}"'
+      local expected = '"from 10"'
+      local data = {}
+      local config = { template_path = 'fixtures', template_extension = 10 }
+
+      assert_equal(groucho.render(template, data, config), expected)
+    end)
+  end)
 end)
