@@ -15,8 +15,6 @@ dependencies = {
 build = {
   type = 'none',
   install = {
-    lua = {
-      'groucho.lua',
-    },
+    lua = { 'groucho.lua', 'util.lua' }
   }
 }
