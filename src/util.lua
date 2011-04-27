@@ -16,8 +16,8 @@ module 'util'
 -- * ... <any...>: the values to pack.
 --
 -- Returns:
--- * <table>: a table holding the values in ... .
--- * <integer>: the amount of values given.
+-- * <table> a table holding the values in ... .
+-- * <integer> the amount of values given.
 function pack(...)
   return { ... }, select('#', ...)
 end
@@ -28,7 +28,7 @@ end
 -- * v <any>: the value to be converted to a string.
 --
 -- Returns:
--- * <string>: the empty string if v is nil, v stringified otherwise.
+-- * <string> the empty string if v is nil, v stringified otherwise.
 function blankifnil(v)
   return v ~= nil and tostring(v) or ''
 end
@@ -62,7 +62,7 @@ end
 -- * v <string>: a string.
 --
 -- Returns:
--- * <string>: v with the forementioned characters escaped into HTML entities.
+-- * <string> v with the forementioned characters escaped into HTML entities.
 function escapehtml(v)
   return v:gsub('&', '&amp;'):gsub('\\', '&#92;')
           :gsub('"', '&quot;'):gsub('<', '&lt;'):gsub('>', '&gt;')
@@ -79,7 +79,7 @@ local NL = re.compile '%nl'
 -- * i <integer>: the index.
 --
 -- Returns:
--- * <integer | boolean>: i, if it's at the beginning of a line, or false
+-- * <integer | boolean> i, if it's at the beginning of a line, or false
 --     otherwise.
 function atlinestart(s, i)
   return (i == 1 or NL:match(s:sub(i - 1, i - 1))) and i or false

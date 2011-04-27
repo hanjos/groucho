@@ -20,7 +20,7 @@ module 'groucho'
 
 --[[ helper code ]]
 --- The metatable for configuration tables with its default values.
-local config_defaults = {
+local config_mt = {
   __index = { template_path = '.', template_extension = 'mustache' }
 }
 
@@ -33,11 +33,11 @@ local config_defaults = {
 -- * func  <any... -> any...>: the block of code to run.
 --
 -- Returns:
--- * <any... -> any...>: a function which takes the same parameters and
+-- * <any... -> any...> a function which takes the same parameters and
 --     returns the same values as func, but sets state.inSection to true
 --     before executing func and false afterwards, but before returning for
 --     good.
-local function inSection(state, func)
+local function make_section(state, func)
   return function (...)
     state.inSection = true
 
@@ -107,12 +107,12 @@ end
 --     If set to a non-string value, its string representation will be used.
 --
 -- Returns:
--- * <file>: a read-only open file handle to the partial file.
+-- * <file> a read-only open file handle to the partial file.
 --
 -- Panics:
 -- * the file does not exist.
 -- * the file exists, but could not be opened for reading.
-local function findpartialfile(filename, config)
+local function find_partial_file(filename, config)
   local path, ext = config.template_path, blankifnil(config.template_extension)
   local location = path..'/'..filename..(#ext > 0 and '.'..ext or '')
 
@@ -126,8 +126,8 @@ end
 -- * indentation <string>: the indentation to be added to every line.
 --
 -- Returns:
--- * <string>: text, with all its lines indented.
-local function addindentation(text, indentation)
+-- * <string> text, with all its lines indented.
+local function add_indentation(text, indentation)
   if not indentation or indentation == '' then
     return text
   end
@@ -143,28 +143,28 @@ end
 -- * indentation <string>: the indentation to be added to every line of the
 --     file's text.
 -- * config      <table>: a table holding some configuration options, as
---     described in [[findpartialfile]]'s documentation.
+--     described in [[find_partial_file]]'s documentation.
 --
 -- Returns:
--- * <string>: the partial file's text, with all its lines indented.
+-- * <string> the partial file's text, with all its lines indented.
 --
 -- Panics:
--- * for the same reasons findpartialfile panics.
-local function processpartial(filename, indentation, config)
-  local file = findpartialfile(filename, config)
+-- * for the same reasons find_partial_file panics.
+local function process_partial(filename, indentation, config)
+  local file = find_partial_file(filename, config)
     local text = file:read '*a'
   file:close()
   
-  return addindentation(text, indentation)
+  return add_indentation(text, indentation)
 end
 
 --[[ exports ]]
 --- The PEG which matches mustache templates and does the basic captures.
 -- Some hooks are left to be populated later with the given context and
 -- configuration to construct the actual LPeg pattern. They are:
--- * section <(string, integer, table) -> string>: a match-time capture which
---     will return the section fully rendered. The captured table holds some
---     fields to aid rendering:
+-- * section <(string, integer, table) -> (integer, string)>: a match-time
+--     capture which will return the section fully rendered. The captured
+--     table holds some fields to aid rendering:
 -- ** tag         <string>: the string to be looked up in the context.
 -- ** textstart   <integer>: the position in the full text where the section
 --     starts.
@@ -172,14 +172,16 @@ end
 --     section end.
 -- ** finalspaces <string (optional)>: the spaces just before the closing tag.
 --     Exists only if the closing tag is not standalone.
--- * invertedSection <(string, integer, table) -> string>: a match-time capture
---     just like section, but applied to inverted sections.
+-- * invertedsection <(string, integer, table) -> (integer, string)>: a
+--     match-time capture just like section, but applied to inverted sections.
 -- * partial         <table -> string>: renders partial captures, receiving a
 --     table with the following fields:
 -- ** 1           <string>: the name of template to search for.
 -- ** indentation <string (optional)>: the indentation in a standalone partial.
+-- * innerpartial <table -> string>: the same as partial captures, but matches
+--     only partials inside sections.
 -- * comment      <string -> string>: renders comments.
--- * unescapedVar <string -> string>: renders unescaped variables.
+-- * unescapedvar <string -> string>: renders unescaped variables.
 -- * var          <string -> string>: renders normal variables.
 -- * atlinestart  <(string, integer) -> (integer | boolean)>: an LPeg function
 --     pattern to check if the index is at the beginning of the template or of
@@ -195,17 +197,19 @@ grammar = [[
   InnerHole <- Section / InvertedSection / InnerPartial / Comment
             / UnescapedVar / Var
   Section   <- (
-      {:tag: StandaloneOpenSection / OpenSection :}
-      {:textstart: {} :}
-      Body
-      {:textfinish: {} :}
-      (StandaloneCloseSectionWithTag / ({:finalspaces: %s* :} CloseSectionWithTag))) -> {} => section
+        {:tag: StandaloneOpenSection / OpenSection :}
+        {:textstart: {} :}
+        Body
+        {:textfinish: {} :}
+        (StandaloneCloseSectionWithTag / ({:finalspaces: %s* :} CloseSectionWithTag))
+      ) -> {} => section
   InvertedSection <- (
-      {:tag: StandaloneOpenInvertedSection / OpenInvertedSection :}
-      {:textstart: {} :}
-      Body
-      {:textfinish: {} :}
-      (StandaloneCloseSectionWithTag / ({:finalspaces: %s* :} CloseSectionWithTag))) -> {} => invertedSection
+        {:tag: StandaloneOpenInvertedSection / OpenInvertedSection :}
+        {:textstart: {} :}
+        Body
+        {:textfinish: {} :}
+        (StandaloneCloseSectionWithTag / ({:finalspaces: %s* :} CloseSectionWithTag))
+      ) -> {} => invertedsection
     OpenSection         <- '{{#' %s* { Name } %s* '}}'
     OpenInvertedSection <- '{{^' %s* { Name } %s* '}}'
     CloseSection        <- '{{/' %s* Name %s* '}}'
@@ -217,12 +221,12 @@ grammar = [[
   Partial         <- (StandalonePartial / InlinePartial) -> {} -> partial
     StandalonePartial <- %atlinestart {:indentation: (!%nl %s)* :} InlinePartial (!%nl %s)* (%nl / !.)
     InlinePartial     <- '{{>' %s* { Name } %s* '}}'
-  InnerPartial    <- (StandalonePartial / InlinePartial) -> {} -> innerPartial
+  InnerPartial    <- (StandalonePartial / InlinePartial) -> {} -> innerpartial
   Comment         <- (StandaloneComment / InlineComment) -> comment
     StandaloneComment <- %atlinestart (!%nl %s)* InlineComment (!%nl %s)* (%nl / !.)
     InlineComment     <- '{{!' (!'}}' .)* '}}'
   UnescapedVar    <- ('{{{' %s* { (!(%s* '}}}') .)* } %s* '}}}'
-                  / '{{&' %s* { Name } %s* '}}') -> unescapedVar
+                  / '{{&' %s* { Name } %s* '}}') -> unescapedvar
   Var             <- ('{{' ![!#>/{&^] %s* { Name } %s* '}}') -> var
   Name  <- (!(%s* '}}') .)*
 ]]
@@ -252,12 +256,12 @@ grammar = [[
 -- * a section resolves to a list which has elements that are neither a table,
 --     a string, a boolean nor a number.
 function render(template, context, config, state)
-  config = setmetatable(config or {}, config_defaults)
+  config = setmetatable(config or {}, config_mt)
   state = state or { inSection = false }
 
   local patt = re.compile(grammar,
     { atlinestart = function (s, i) return not state.inSection and atlinestart(s, i) end,
-      unescapedVar = function (var)
+      unescapedvar = function (var)
         local resolvedvar = resolve(context, var)
 
         if type(resolvedvar) == 'function' then
@@ -281,18 +285,18 @@ function render(template, context, config, state)
           return ''
         end
 
-        local text = processpartial(partial[1], partial.indentation or '', config)
+        local text = process_partial(partial[1], partial.indentation or '', config)
 
         -- include it and evaluate it here
         return render(text, context, config, state)
       end,
-      innerPartial = function (partial)
+      innerpartial = function (partial)
         if not config.template_path then -- file not found
           return ''
         end
 
         local name, indentation = partial[1], partial.indentation or ''
-        local text = processpartial(name, indentation, config)
+        local text = process_partial(name, indentation, config)
 
         -- HACK: substitute this partial to an unescaped variable with a
         -- similar known name, and map this variable to a function which
@@ -302,7 +306,7 @@ function render(template, context, config, state)
 
         return '{{{ partial: '..name..' }}}'
       end,
-      section = inSection(state, function (s, i, section)
+      section = make_section(state, function (s, i, section)
           local ctx = resolve(context, section.tag)
 
           if not ctx then -- undefined value, nothing to do
@@ -359,7 +363,7 @@ function render(template, context, config, state)
               config,
               state)
         end),
-      invertedSection = inSection(state, function (s, i, section)
+      invertedsection = make_section(state, function (s, i, section)
         local ctx = resolve(context, section.tag)
         if ctx and (not islist(ctx) or #ctx > 0) then -- it's defined, nothing to do
           return i, ''
