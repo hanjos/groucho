@@ -1,4 +1,4 @@
-package.path = '../src/?.lua;'..package.path
+package.path = '../src/?.lua;../src/?/init.lua;'..package.path
 
 require 'telescope'
 require 'groucho'

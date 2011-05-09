@@ -1,7 +1,7 @@
-package.path = '../src/?.lua;'..package.path
+package.path = '../src/?.lua;../src/?/init.lua;'..package.path
 
 require 'telescope'
-require 'util'
+local util = require 'groucho.util'
 
 context('Util', function ()
   context('blankifnil', function ()

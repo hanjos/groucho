@@ -8,7 +8,7 @@ local re = require 're'
 --- Some utility functions.
 --
 -- @author Humberto Anjos
-module 'util'
+module 'groucho.util'
 
 --- Packs the arguments in a table.
 --

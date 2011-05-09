@@ -1,6 +1,6 @@
 --[[ imports and aliases ]]
 local re = require 're'
-local util = require 'util'
+local util = require 'groucho.util'
 
 local table_remove, table_concat, io_open =
   table.remove, table.concat, io.open
