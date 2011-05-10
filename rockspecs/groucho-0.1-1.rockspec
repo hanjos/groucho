@@ -5,8 +5,10 @@ source = {
 }
 description = {
   summary = 'Mustache implementation for Lua using LPeg',
-  detailed = [[groucho is a small templating library for Lua, 
-  mainly an implementation of Mustache (https://github.com/defunkt/mustache) using LPeg.]],
+  detailed = [[
+    groucho is a small templating library for Lua, mainly an implementation
+    of Mustache (https://github.com/defunkt/mustache) using LPeg.
+  ]],
   license = 'MIT/X11',
   homepage = 'http://github.com/hanjos/groucho',
   maintainer = 'Humberto Anjos (h.anjos@acm.org)',
