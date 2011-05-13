@@ -34,15 +34,16 @@ groucho exports a function **render**, which takes a template
 
 ```lua
 local result = groucho.render(
-  'aasdas{{a}}dasd{{{asdasd}}}{{&awdas}}', -- the template
-  { a = '<a>', asdasd = '<dsadsa>' }))     -- the context
+  'lorem ipsum {{fill}} yadda yadda {{{yadda}}}{{&nonexistent}}',          -- the template
+  { fill = '<forgot was should go here>', yadda = '<random key mash>' }))  -- the context
 ```
 Optionally, it may take a configuration table as an extra parameter:
 
 ```lua
 local result = groucho.render(
-  'aasdas{{a}}dasd{{{asdasd}}}{{&awdas}}', -- the template
-  { a = '<a>', asdasd = '<dsadsa>' },      -- the context
+  'lorem ipsum {{fill}} yadda yadda {{{yadda}}}{{&nonexistent}}',  -- the template
+  { fill = '<forgot was should go here>', 
+    yadda = '<random key mash>' },         -- the context
   { template_path = '../',
     template_extension = 'mustache' }))    -- the configuration table
 ```
