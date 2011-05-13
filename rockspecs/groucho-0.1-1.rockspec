@@ -21,7 +21,7 @@ build = {
   type = 'none',
   install = {
     lua = { 
-      groucho = 'src/groucho/init.lua',
+      ['groucho.init'] = 'src/groucho/init.lua',
       ['groucho.util'] = 'src/groucho/util.lua',
     }
   }
