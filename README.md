@@ -35,7 +35,7 @@ groucho exports a function **render**, which takes a template
 ```lua
 local result = groucho.render(
   'lorem ipsum {{fill}} yadda yadda {{{yadda}}}{{&nonexistent}}',          -- the template
-  { fill = '<forgot was should go here>', yadda = '<random key mash>' }))  -- the context
+  { fill = '<forgot was should go here>', yadda = '<random key mash>' })   -- the context
 ```
 Optionally, it may take a configuration table as an extra parameter:
 
@@ -45,7 +45,7 @@ local result = groucho.render(
   { fill = '<forgot was should go here>', 
     yadda = '<random key mash>' },         -- the context
   { template_path = '../',
-    template_extension = 'mustache' }))    -- the configuration table
+    template_extension = 'mustache' })     -- the configuration table
 ```
 
 The result is the template with its variables resolved against the context.
