@@ -35,14 +35,14 @@ groucho exports a function **render**, which takes a template
 ```lua
 local result = groucho.render(
   'lorem ipsum {{fill}} yadda yadda {{{yadda}}}{{&nonexistent}}',          -- the template
-  { fill = '<forgot was should go here>', yadda = '<random key mash>' })   -- the context
+  { fill = '<forgot what should go here>', yadda = '<random key mash>' })   -- the context
 ```
 Optionally, it may take a configuration table as an extra parameter:
 
 ```lua
 local result = groucho.render(
   'lorem ipsum {{fill}} yadda yadda {{{yadda}}}{{&nonexistent}}',  -- the template
-  { fill = '<forgot was should go here>', 
+  { fill = '<forgot what should go here>', 
     yadda = '<random key mash>' },         -- the context
   { template_path = '../',
     template_extension = 'mustache' })     -- the configuration table
@@ -59,13 +59,16 @@ To do
 
 * Set delimiters
 * What to do with the documentation?
-* Make sure the rockspec makes sense
 
 Why?
 ----
 
 To be honest, I just wanted an excuse to fool around with **re** :)
 
+License
+-------
+
+See the LICENSE file.
 
 [1]: http://mustache.github.com/
 [2]: http://www.inf.puc-rio.br/~roberto/lpeg/lpeg.html
